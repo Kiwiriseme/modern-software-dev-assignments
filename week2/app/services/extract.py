@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import os
 import re
-from typing import List
-import json
-from typing import Any
-from ollama import chat
-from dotenv import load_dotenv
 
-load_dotenv()
+from ollama import chat
+from pydantic import BaseModel
+
+from ..config import get_settings
+
+_settings = get_settings()
 
 BULLET_PREFIX_PATTERN = re.compile(r"^\s*([-*•]|\d+\.)\s+")
 KEYWORD_PREFIXES = (
@@ -16,6 +15,10 @@ KEYWORD_PREFIXES = (
     "action:",
     "next:",
 )
+
+
+class ActionItems(BaseModel):
+    items: list[str]
 
 
 def _is_action_line(line: str) -> bool:
@@ -31,9 +34,9 @@ def _is_action_line(line: str) -> bool:
     return False
 
 
-def extract_action_items(text: str) -> List[str]:
+def extract_action_items(text: str) -> list[str]:
     lines = text.splitlines()
-    extracted: List[str] = []
+    extracted: list[str] = []
     for raw_line in lines:
         line = raw_line.strip()
         if not line:
@@ -54,15 +57,44 @@ def extract_action_items(text: str) -> List[str]:
                 continue
             if _looks_imperative(s):
                 extracted.append(s)
-    # Deduplicate while preserving order
+    # Deduplicate while preserving order：去重并保留原始顺序
     seen: set[str] = set()
-    unique: List[str] = []
+    unique: list[str] = []
     for item in extracted:
         lowered = item.lower()
         if lowered in seen:
             continue
         seen.add(lowered)
         unique.append(item)
+    return unique
+
+
+def extract_action_items_llm(text: str) -> list[str]:
+    response = chat(
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    "Extract action items from the following text. "
+                    "An action item is a specific, actionable task that someone needs to complete. "
+                    "Return only the actionable items as a JSON array of strings, one per item. "
+                    "Do not include narrative sentences that are not tasks.\n\n"
+                    f"{text}"
+                ),
+            }
+        ],
+        model=_settings.LLM_MODEL,
+        format=ActionItems.model_json_schema(),
+    )
+    result = ActionItems.model_validate_json(response.message.content)
+    seen: set[str] = set()
+    unique: list[str] = []
+    for item in result.items:
+        lowered = item.strip().lower()
+        if not lowered or lowered in seen:
+            continue
+        seen.add(lowered)
+        unique.append(item.strip())
     return unique
 
 

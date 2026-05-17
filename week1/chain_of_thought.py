@@ -8,7 +8,13 @@ load_dotenv()
 NUM_RUNS_TIMES = 5
 
 # TODO: Fill this in!
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = """Solve the problem step by step, showing your reasoning process clearly. Then provide the final answer on the last line as "Answer: <number>".
+
+For modular exponentiation problems, use mathematical properties like Euler's theorem or fast exponentiation to calculate efficiently. Show each step of your calculation
+"""
+
+
+#USER_PROMPT = """
 
 
 USER_PROMPT = """

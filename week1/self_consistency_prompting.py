@@ -9,7 +9,15 @@ load_dotenv()
 NUM_RUNS_TIMES = 5
 
 # TODO: Fill this in! Try to get as close to 100% correctness across all runs as possible.
-YOUR_SYSTEM_PROMPT = ""
+YOUR_SYSTEM_PROMPT = """Solve the word problem step by step, showing your reasoning clearly. Then provide the final answer on the last line as "Answer: <number>".
+
+Break down the problem:
+1. Identify the total distance
+2. Identify where the first stop occurred
+3. Identify where the second stop occurred (measured from the end)
+4. Calculate the distance between the two stops
+
+Double-check your calculation before giving the final answer."""
 
 USER_PROMPT = """
 Solve this problem, then give the final answer on the last line as "Answer: <number>".
