@@ -1,9 +1,14 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class NoteCreate(BaseModel):
-    title: str
-    content: str
+    title: str = Field(min_length=1, max_length=200)
+    content: str = Field(min_length=1)
+
+
+class NoteUpdate(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    content: str | None = Field(default=None, min_length=1)
 
 
 class NoteRead(BaseModel):
@@ -11,12 +16,11 @@ class NoteRead(BaseModel):
     title: str
     content: str
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ActionItemCreate(BaseModel):
-    description: str
+    description: str = Field(min_length=1)
 
 
 class ActionItemRead(BaseModel):
@@ -24,5 +28,4 @@ class ActionItemRead(BaseModel):
     description: str
     completed: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

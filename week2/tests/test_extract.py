@@ -75,7 +75,11 @@ Some random thought."""
         text = "We need to add error handling to the API. The database connection should be optimized for better performance. Also we should update the user documentation."
 
         mock_chat.return_value = _make_chat_response(
-            ["Add error handling to the API", "Optimize database connection", "Update user documentation"]
+            [
+                "Add error handling to the API",
+                "Optimize database connection",
+                "Update user documentation",
+            ]
         )
 
         items = extract_action_items_llm(text)
@@ -118,9 +122,7 @@ Some random thought."""
 
     @patch("week2.app.services.extract.chat")
     def test_empty_items_filtered_from_response(self, mock_chat):
-        mock_chat.return_value = _make_chat_response(
-            ["Set up database", "", "   ", "Write tests"]
-        )
+        mock_chat.return_value = _make_chat_response(["Set up database", "", "   ", "Write tests"])
 
         items = extract_action_items_llm("- Set up database\n- Write tests")
 
@@ -189,7 +191,13 @@ Random thought about the project."""
 2. Submit the PR"""
 
         mock_chat.return_value = _make_chat_response(
-            ["Buy groceries", "Clean the house", "Call the doctor", "Finish the report", "Submit the PR"]
+            [
+                "Buy groceries",
+                "Clean the house",
+                "Call the doctor",
+                "Finish the report",
+                "Submit the PR",
+            ]
         )
 
         items = extract_action_items_llm(text)

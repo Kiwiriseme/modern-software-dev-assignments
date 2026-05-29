@@ -1,8 +1,8 @@
 from typing import Any
+
 import httpx
-from mcp.server.fastmcp import FastMCP
-import os
 from config import GITHUB_TOKEN
+from mcp.server.fastmcp import FastMCP
 
 mcp = FastMCP("github_issue")
 
@@ -13,8 +13,10 @@ USER_AGENT = "github-issue-app/1.0"
 HEADERS = {
     "Accept": "application/vnd.github.v3+json",
     "Authorization": f"token {github_token}",
-    "User-Agent": USER_AGENT
+    "User-Agent": USER_AGENT,
 }
+
+
 async def make_github_request(url: str, method: str = "GET") -> dict[str, Any] | None:
     if not github_token:
         return None
@@ -34,6 +36,7 @@ async def make_github_request(url: str, method: str = "GET") -> dict[str, Any] |
             return {"error": f"Network error: {e}"}
         except Exception as e:
             return {"error": f"Unexpected error: {e}"}
+
 
 @mcp.tool()
 ## 已知user，获取user的信息
@@ -57,6 +60,7 @@ Public Repos: {data.get('public_repos', 0)}
 Repository URL: {data.get('repo_url', 'N/A')}
 Profile: {data.get('html_url', 'N/A')}
 """
+
 
 @mcp.tool()
 ## 已知owner，获取owner的所有仓库信息
@@ -89,7 +93,6 @@ URL: {dic.get('html_url', 'N/A')}
     return f"Some Repositories for {owner}:\n" + "\n---\n".join(repos)
 
 
-
 @mcp.tool()
 ## 已知owner和repo，获取repo信息
 async def get_repo_info(owner: str, repo: str) -> str:
@@ -107,8 +110,10 @@ async def get_repo_info(owner: str, repo: str) -> str:
     Language={data.get('language', 'N/A')}
     """
 
+
 def main():
     mcp.run(transport="stdio")
+
 
 if __name__ == "__main__":
     main()

@@ -4,22 +4,29 @@ async function fetchJSON(url, options) {
   return res.json();
 }
 
+let notesPage = 1;
+let actionsPage = 1;
+
 async function loadNotes() {
   const list = document.getElementById('notes');
   list.innerHTML = '';
-  const notes = await fetchJSON('/notes/');
-  for (const n of notes) {
+  const body = await fetchJSON(`/notes/?page=${notesPage}&page_size=5`);
+  for (const n of body.items) {
     const li = document.createElement('li');
     li.textContent = `${n.title}: ${n.content}`;
     list.appendChild(li);
   }
+  document.getElementById('notes-info').textContent =
+    `Page ${body.page} of ${Math.ceil(body.total / body.page_size)} (${body.total} total)`;
+  document.getElementById('notes-prev').disabled = notesPage <= 1;
+  document.getElementById('notes-next').disabled = notesPage * body.page_size >= body.total;
 }
 
 async function loadActions() {
   const list = document.getElementById('actions');
   list.innerHTML = '';
-  const items = await fetchJSON('/action-items/');
-  for (const a of items) {
+  const body = await fetchJSON(`/action-items/?page=${actionsPage}&page_size=5`);
+  for (const a of body.items) {
     const li = document.createElement('li');
     li.textContent = `${a.description} [${a.completed ? 'done' : 'open'}]`;
     if (!a.completed) {
@@ -33,6 +40,10 @@ async function loadActions() {
     }
     list.appendChild(li);
   }
+  document.getElementById('actions-info').textContent =
+    `Page ${body.page} of ${Math.ceil(body.total / body.page_size)} (${body.total} total)`;
+  document.getElementById('actions-prev').disabled = actionsPage <= 1;
+  document.getElementById('actions-next').disabled = actionsPage * body.page_size >= body.total;
 }
 
 window.addEventListener('DOMContentLoaded', () => {
@@ -46,6 +57,7 @@ window.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify({ title, content }),
     });
     e.target.reset();
+    notesPage = 1;
     loadNotes();
   });
 
@@ -58,7 +70,21 @@ window.addEventListener('DOMContentLoaded', () => {
       body: JSON.stringify({ description }),
     });
     e.target.reset();
+    actionsPage = 1;
     loadActions();
+  });
+
+  document.getElementById('notes-prev').addEventListener('click', () => {
+    if (notesPage > 1) { notesPage--; loadNotes(); }
+  });
+  document.getElementById('notes-next').addEventListener('click', () => {
+    notesPage++; loadNotes();
+  });
+  document.getElementById('actions-prev').addEventListener('click', () => {
+    if (actionsPage > 1) { actionsPage--; loadActions(); }
+  });
+  document.getElementById('actions-next').addEventListener('click', () => {
+    actionsPage++; loadActions();
   });
 
   loadNotes();

@@ -1,5 +1,6 @@
 ### weather tool 案例不作为最终实现
 from typing import Any
+
 import httpx
 from mcp.server.fastmcp import FastMCP
 
@@ -9,6 +10,7 @@ mcp = FastMCP("weather")
 # Constants
 NWS_API_BASE = "https://api.weather.gov"
 USER_AGENT = "weather-app/1.0"
+
 
 async def make_nws_request(url: str) -> dict[str, Any] | None:
     """Make a request to the NWS API with proper error handling."""
@@ -32,6 +34,7 @@ Severity: {props.get("severity", "Unknown")}
 Description: {props.get("description", "No description available")}
 Instructions: {props.get("instruction", "No specific instructions provided")}
 """
+
 
 @mcp.tool()
 async def get_alerts(state: str) -> str:
@@ -89,8 +92,9 @@ Forecast: {period["detailedForecast"]}
 
     return "\n---\n".join(forecasts)
 
+
 def main():
- # Initialize and run the server
+    # Initialize and run the server
     mcp.run(transport="stdio")
 
 

@@ -1,9 +1,13 @@
-from pydantic import BaseModel
+from typing import Generic, TypeVar
+
+from pydantic import BaseModel, Field
+
+T = TypeVar("T")
 
 
 class NoteCreate(BaseModel):
-    title: str
-    content: str
+    title: str = Field(min_length=1)
+    content: str = Field(min_length=1)
 
 
 class NoteRead(BaseModel):
@@ -16,7 +20,7 @@ class NoteRead(BaseModel):
 
 
 class ActionItemCreate(BaseModel):
-    description: str
+    description: str = Field(min_length=1)
 
 
 class ActionItemRead(BaseModel):
@@ -26,3 +30,10 @@ class ActionItemRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    items: list[T]
+    total: int
+    page: int
+    page_size: int

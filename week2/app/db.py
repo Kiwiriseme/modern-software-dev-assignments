@@ -104,5 +104,3 @@ def mark_action_item_done(action_item_id: int, done: bool) -> None:
             (1 if done else 0, action_item_id),
         )
         conn.commit()
-
-

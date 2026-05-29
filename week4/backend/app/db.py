@@ -40,12 +40,14 @@ def get_session() -> Iterator[Session]:
         session.close()
 
 
+## 当数据库首次创建时，自动执行初始化数据（种子数据） 。
 def apply_seed_if_needed() -> None:
     db_path = Path(DEFAULT_DB_PATH)
     db_path.parent.mkdir(parents=True, exist_ok=True)
     newly_created = not db_path.exists()
     if newly_created:
         db_path.touch()
+        ##创建空数据库文件
 
     seed_file = Path("./data/seed.sql")
     if newly_created and seed_file.exists():
@@ -54,3 +56,4 @@ def apply_seed_if_needed() -> None:
             if sql.strip():
                 for statement in [s.strip() for s in sql.split(";") if s.strip()]:
                     conn.execute(text(statement))
+                    ##执行每一条SQL语句

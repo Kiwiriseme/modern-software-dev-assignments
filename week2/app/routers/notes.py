@@ -42,5 +42,3 @@ def get_single_note(note_id: int) -> NoteRead:
         content=row["content"],
         created_at=row["created_at"],
     )
-
-

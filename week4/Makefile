@@ -1,10 +1,10 @@
 .PHONY: run test format lint seed
 
 run:
-	PYTHONPATH=. uvicorn backend.app.main:app --reload --host $${HOST:-127.0.0.1} --port $${PORT:-8000}
+	@python -c "import os; os.environ['PYTHONPATH'] = '.'; import subprocess; import sys; host = os.environ.get('HOST', '127.0.0.1'); port = os.environ.get('PORT', '8000'); sys.exit(subprocess.run(['uvicorn', 'backend.app.main:app', '--reload', '--host', host, '--port', port]).returncode)"
 
 test:
-	PYTHONPATH=. pytest -q backend/tests
+	@python -c "import os; os.environ['PYTHONPATH'] = '.'; import subprocess; import sys; sys.exit(subprocess.run(['pytest', '-q', 'backend/tests']).returncode)"
 
 format:
 	black .
@@ -14,4 +14,4 @@ lint:
 	ruff check .
 
 seed:
-	PYTHONPATH=. python -c "from backend.app.db import apply_seed_if_needed; apply_seed_if_needed()"
+	@python -c "import os; os.environ['PYTHONPATH'] = '.'; from backend.app.db import apply_seed_if_needed; apply_seed_if_needed()"

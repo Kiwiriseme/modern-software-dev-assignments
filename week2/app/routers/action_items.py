@@ -62,5 +62,3 @@ def list_all(note_id: int | None = None) -> list[ActionItemRead]:
 def mark_done(action_item_id: int, payload: MarkDoneRequest) -> dict:
     db.mark_action_item_done(action_item_id, payload.done)
     return {"id": action_item_id, "done": payload.done}
-
-
