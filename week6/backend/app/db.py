@@ -47,12 +47,13 @@ def apply_seed_if_needed() -> None:
     if newly_created:
         db_path.touch()
 
-    seed_file = Path("./data/seed.sql")
+    seed_file = (Path(__file__).parent.parent.parent / "data" / "seed.sql").resolve()
     if newly_created and seed_file.exists():
+        sql = seed_file.read_text()
+        if not sql.strip():
+            return
         with engine.begin() as conn:
-            sql = seed_file.read_text()
-            if sql.strip():
-                for statement in [s.strip() for s in sql.split(";") if s.strip()]:
-                    conn.execute(text(statement))
-
-
+            for statement in sql.split(";"):
+                stmt = statement.strip()
+                if stmt:
+                    conn.execute(text(stmt))

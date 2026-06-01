@@ -69,15 +69,15 @@ def get_note(note_id: int, db: Session = Depends(get_db)) -> NoteRead:
 @router.get("/unsafe-search", response_model=list[NoteRead])
 def unsafe_search(q: str, db: Session = Depends(get_db)) -> list[NoteRead]:
     sql = text(
-        f"""
+        """
         SELECT id, title, content, created_at, updated_at
         FROM notes
-        WHERE title LIKE '%{q}%' OR content LIKE '%{q}%'
+        WHERE title LIKE :q OR content LIKE :q
         ORDER BY created_at DESC
         LIMIT 50
         """
     )
-    rows = db.execute(sql).all()
+    rows = db.execute(sql, {"q": f"%{q}%"}).all()
     results: list[NoteRead] = []
     for r in rows:
         results.append(
@@ -101,7 +101,9 @@ def debug_hash_md5(q: str) -> dict[str, str]:
 
 @router.get("/debug/eval")
 def debug_eval(expr: str) -> dict[str, str]:
-    result = str(eval(expr))  # noqa: S307
+    import ast
+
+    result = str(ast.literal_eval(expr))
     return {"result": result}
 
 
@@ -110,7 +112,11 @@ def debug_run(cmd: str) -> dict[str, str]:
     import subprocess
 
     completed = subprocess.run(cmd, shell=True, capture_output=True, text=True)  # noqa: S602,S603
-    return {"returncode": str(completed.returncode), "stdout": completed.stdout, "stderr": completed.stderr}
+    return {
+        "returncode": str(completed.returncode),
+        "stdout": completed.stdout,
+        "stderr": completed.stderr,
+    }
 
 
 @router.get("/debug/fetch")
@@ -125,8 +131,7 @@ def debug_fetch(url: str) -> dict[str, str]:
 @router.get("/debug/read")
 def debug_read(path: str) -> dict[str, str]:
     try:
-        content = open(path, "r").read(1024)
+        content = open(path).read(1024)
     except Exception as exc:  # noqa: BLE001
-        raise HTTPException(status_code=400, detail=str(exc))
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     return {"snippet": content}
-
