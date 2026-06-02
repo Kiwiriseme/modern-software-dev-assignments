@@ -66,3 +66,11 @@ def get_note(note_id: int, db: Session = Depends(get_db)) -> NoteRead:
     return NoteRead.model_validate(note)
 
 
+@router.delete("/{note_id}")
+def delete_note(note_id: int, db: Session = Depends(get_db)) -> dict[str, bool]:
+    note = db.get(Note, note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="Note not found")
+    db.delete(note)
+    db.flush()
+    return {"ok": True}
