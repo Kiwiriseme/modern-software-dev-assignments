@@ -57,7 +57,7 @@ async function onPageChange(page) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: #f5f7fa;
+  background: var(--bg-page);
   overflow: hidden;
 }
 </style>

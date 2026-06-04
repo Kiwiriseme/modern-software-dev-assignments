@@ -1,11 +1,19 @@
 export const CATEGORY_COLORS = {
-  '工作': '#3b82f6',
-  '学习': '#22c55e',
-  '生活': '#a855f7',
-  '想法': '#f59e0b',
+  '工作': '#5b7f95',
+  '学习': '#5a8a6a',
+  '生活': '#b08a7a',
+  '想法': '#c4a05a',
 }
 
-export const DEFAULT_CATEGORY_COLOR = '#6b7280'
+export const CATEGORY_BG_COLORS = {
+  '工作': '#e8eff4',
+  '学习': '#e6f0e9',
+  '生活': '#f5ede9',
+  '想法': '#f9f2e3',
+}
+
+export const DEFAULT_CATEGORY_COLOR = '#8b7e6a'
+export const DEFAULT_CATEGORY_BG = '#f0ede6'
 
 export const PRESET_CATEGORIES = ['全部', '工作', '学习', '生活', '想法']
 
@@ -14,8 +22,7 @@ export function categoryColor(cat) {
 }
 
 export function categoryBgColor(cat) {
-  const hex = CATEGORY_COLORS[cat] || DEFAULT_CATEGORY_COLOR
-  return hex + '20'
+  return CATEGORY_BG_COLORS[cat] || DEFAULT_CATEGORY_BG
 }
 
 export function formatDate(dateStr) {
@@ -30,11 +37,16 @@ export function formatRelativeDate(dateStr) {
   const date = new Date(dateStr)
   if (isNaN(date.getTime())) return ''
   const now = new Date()
-  const diff = date.getTime() - new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const diff = date.getTime() - todayStart
   const days = Math.round(diff / (1000 * 60 * 60 * 24))
   if (days === 0) return '今天'
   if (days === 1) return '明天'
   if (days === -1) return '昨天'
+  if (days < -1 && days >= -6) {
+    const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+    return weekdays[date.getDay()]
+  }
   return date.toISOString().split('T')[0]
 }
 

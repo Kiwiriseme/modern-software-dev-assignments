@@ -1,10 +1,23 @@
 <template>
   <aside class="sidebar">
     <div class="sidebar-header">
-      <div class="avatar">📓</div>
-      <div class="brand">网页记事本</div>
+      <div class="brand-mark">
+        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+          <rect x="4" y="2" width="20" height="24" rx="3" stroke="currentColor" stroke-width="1.5" fill="none"/>
+          <line x1="10" y1="8" x2="18" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="10" y1="12" x2="18" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="10" y1="16" x2="15" y2="16" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          <rect x="8" y="3" width="3" height="1.5" rx="0.75" fill="currentColor" opacity="0.4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="brand-name">网页记事本</div>
+        <div class="brand-subtitle">记录 · 整理 · 思考</div>
+      </div>
     </div>
+
     <nav class="nav-list">
+      <div class="nav-section-label">分类</div>
       <button
         v-for="cat in displayCategories"
         :key="cat"
@@ -12,11 +25,26 @@
         :class="{ active: store.activeCategory === cat }"
         @click="store.setActiveCategory(cat)"
       >
-        {{ cat }}
+        <span class="nav-dot" :class="{ filled: store.activeCategory === cat }"></span>
+        <span class="nav-label">{{ cat }}</span>
+        <span v-if="store.activeCategory === cat" class="nav-indicator"></span>
       </button>
     </nav>
+
     <div class="sidebar-footer">
-      <span class="settings-icon">⚙</span>
+      <div class="footer-stats">
+        <span class="stat-item">
+          <span class="stat-count">{{ store.todos.length }}</span>
+          <span class="stat-label">待办</span>
+        </span>
+        <span class="stat-divider">·</span>
+        <span class="stat-item">
+          <span class="stat-count">{{ store.notes.length }}</span>
+          <span class="stat-label">笔记</span>
+        </span>
+      </div>
+      <div class="footer-divider"></div>
+      <ThemeToggle />
     </div>
   </aside>
 </template>
@@ -25,6 +53,7 @@
 import { computed } from 'vue'
 import { useNotesStore } from '../stores/notes.js'
 import { PRESET_CATEGORIES } from '../utils/categories.js'
+import ThemeToggle from './ThemeToggle.vue'
 
 const store = useNotesStore()
 
@@ -36,73 +65,177 @@ const displayCategories = computed(() => {
 
 <style scoped>
 .sidebar {
-  width: 200px;
-  min-width: 200px;
-  background: #fafbfc;
-  border-right: 1px solid #eee;
+  width: var(--sidebar-width);
+  min-width: var(--sidebar-width);
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   height: 100vh;
+  user-select: none;
+  /* Subtle inner shadow for depth */
+  box-shadow: inset -1px 0 0 rgba(45, 36, 24, 0.03);
 }
+
+/* ── Header ── */
 .sidebar-header {
-  padding: 20px 16px;
+  padding: var(--space-xl) var(--space-lg);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-md);
+  border-bottom: 1px solid var(--border-light);
 }
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #4f6ef7;
+
+.brand-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  color: #fff;
   flex-shrink: 0;
 }
-.brand {
-  font-weight: 700;
-  font-size: 14px;
-  color: #1a1a1a;
+
+.brand-name {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: 0.03em;
+  line-height: 1.3;
 }
+
+.brand-subtitle {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  margin-top: 1px;
+}
+
+/* ── Navigation ── */
 .nav-list {
   flex: 1;
-  padding: 8px;
+  padding: var(--space-md) var(--space-sm);
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   overflow-y: auto;
 }
-.nav-item {
-  display: block;
-  width: 100%;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 8px;
-  background: transparent;
-  text-align: left;
-  font-size: 14px;
-  color: #333;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.nav-item:hover {
-  background: #f0f4ff;
-}
-.nav-item.active {
-  background: #e8f0fe;
-  color: #4f6ef7;
+
+.nav-section-label {
+  font-size: 0.6875rem;
   font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: var(--space-sm) var(--space-md) var(--space-xs);
 }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  text-align: left;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  position: relative;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.nav-item.active {
+  background: var(--bg-active);
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.nav-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-focus);
+  flex-shrink: 0;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.nav-dot.filled {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.nav-label {
+  flex: 1;
+}
+
+.nav-indicator {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--accent);
+  animation: indicatorIn var(--duration-normal) var(--ease-out);
+}
+
+@keyframes indicatorIn {
+  from { height: 0; opacity: 0; }
+  to { height: 16px; opacity: 1; }
+}
+
+/* ── Footer ── */
 .sidebar-footer {
-  padding: 12px 16px;
-  border-top: 1px solid #eee;
+  padding: var(--space-md) var(--space-lg) var(--space-lg);
+  border-top: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
 }
-.settings-icon {
-  font-size: 18px;
-  color: #999;
-  cursor: pointer;
+
+.footer-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+}
+
+.stat-item {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+
+.stat-count {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.stat-label {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.stat-divider {
+  color: var(--border);
+  font-size: 0.75rem;
+}
+
+.footer-divider {
+  width: 60%;
+  height: 1px;
+  background: var(--border-light);
 }
 </style>
