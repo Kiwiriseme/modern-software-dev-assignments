@@ -42,6 +42,19 @@ class TodoModelTest(TestCase):
         with self.assertRaises(ValidationError):
             too_long.full_clean()
 
+    def test_due_date_defaults_to_today(self):
+        from datetime import date
+
+        todo = Todo.objects.create(title="Task with default due date")
+        self.assertEqual(todo.due_date, date.today())
+
+    def test_due_date_can_be_set_explicitly(self):
+        from datetime import date
+
+        d = date(2026, 12, 25)
+        todo = Todo.objects.create(title="Christmas task", due_date=d)
+        self.assertEqual(todo.due_date, d)
+
 
 class NoteModelTest(TestCase):
     def test_create_note(self):
@@ -203,6 +216,33 @@ class TodoAPITest(APITestCase):
         self.assertEqual(len(response.data["results"]), 20)
         self.assertEqual(response.data["count"], 26)
         self.assertIsNotNone(response.data["next"])
+
+    def test_create_todo_with_due_date(self):
+        response = self.client.post(
+            "/api/v1/todos",
+            {
+                "title": "Scheduled Todo",
+                "category": "工作",
+                "due_date": "2026-12-25",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["due_date"], "2026-12-25")
+
+    def test_create_todo_without_due_date_defaults_today(self):
+        response = self.client.post(
+            "/api/v1/todos",
+            {
+                "title": "No date todo",
+                "category": "工作",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        from datetime import date
+
+        self.assertEqual(response.data["due_date"], str(date.today()))
 
 
 class NoteAPITest(APITestCase):
