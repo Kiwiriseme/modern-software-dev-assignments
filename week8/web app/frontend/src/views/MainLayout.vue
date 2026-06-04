@@ -27,6 +27,7 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useNotesStore } from '../stores/notes.js'
+import { getTodayDateString } from '../utils/categories.js'
 import Sidebar from '../components/Sidebar.vue'
 import ContentArea from '../components/ContentArea.vue'
 import DetailPanel from '../components/DetailPanel.vue'
@@ -82,13 +83,16 @@ async function onSelect(item, type) {
 }
 
 function onCreate() {
-  store.selectedItem = {
+  const base = {
     title: '',
     category: '',
     content: '',
     is_completed: false,
   }
-  // 映射 activeTab 到正确的 type：'text' → 'note'
+  if (store.activeTab === 'todo') {
+    base.due_date = getTodayDateString()
+  }
+  store.selectedItem = base
   store.selectedType = store.activeTab === 'text' ? 'note' : 'todo'
 }
 
