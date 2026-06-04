@@ -28,6 +28,17 @@
         <span class="nav-dot" :class="{ filled: store.activeCategory === cat }"></span>
         <span class="nav-label">{{ cat }}</span>
         <span v-if="store.activeCategory === cat" class="nav-indicator"></span>
+        <button
+          v-if="cat !== '全部'"
+          class="nav-delete-btn"
+          @click.stop="emit('delete-category', cat)"
+          aria-label="删除分类"
+          title="删除分类"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
       </button>
     </nav>
 
@@ -55,11 +66,13 @@ import { useNotesStore } from '../stores/notes.js'
 import { PRESET_CATEGORIES } from '../utils/categories.js'
 import ThemeToggle from './ThemeToggle.vue'
 
+const emit = defineEmits(['delete-category'])
+
 const store = useNotesStore()
 
 const displayCategories = computed(() => {
   const custom = store.categories.filter(c => !PRESET_CATEGORIES.includes(c))
-  return [...PRESET_CATEGORIES, ...custom]
+  return [...PRESET_CATEGORIES, ...custom].filter(c => !store.deletedCategories.includes(c))
 })
 </script>
 
@@ -191,6 +204,35 @@ const displayCategories = computed(() => {
 @keyframes indicatorIn {
   from { height: 0; opacity: 0; }
   to { height: 16px; opacity: 1; }
+}
+
+.nav-delete-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: all var(--duration-fast) var(--ease-out);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.nav-item:hover .nav-delete-btn {
+  opacity: 1;
+}
+
+.nav-delete-btn:hover {
+  background: var(--error-bg);
+  color: var(--error);
 }
 
 /* ── Footer ── */

@@ -13,6 +13,7 @@ import {
   patchTodo,
   deleteTodo,
   deleteNote,
+  deleteCategory,
 } from '../api/index.js'
 
 export const useNotesStore = defineStore('notes', () => {
@@ -28,6 +29,7 @@ export const useNotesStore = defineStore('notes', () => {
   const isNotesLoading = ref(false)
   const isDetailLoading = ref(false)
   const error = ref(null)
+  const deletedCategories = ref([])
 
   const currentPage = ref(1)
   const totalCount = ref(0)
@@ -82,6 +84,16 @@ export const useNotesStore = defineStore('notes', () => {
       categories.value = res.data
     } catch (e) {
       console.error('Failed to load categories', e)
+    }
+  }
+
+  function addCategory(name) {
+    if (name && !categories.value.includes(name)) {
+      categories.value.push(name)
+      const idx = deletedCategories.value.indexOf(name)
+      if (idx !== -1) {
+        deletedCategories.value.splice(idx, 1)
+      }
     }
   }
 
@@ -231,6 +243,25 @@ export const useNotesStore = defineStore('notes', () => {
     }
   }
 
+  async function removeCategory(name) {
+    await deleteCategory(name)
+    const idx = categories.value.indexOf(name)
+    if (idx !== -1) {
+      categories.value.splice(idx, 1)
+    }
+    if (!deletedCategories.value.includes(name)) {
+      deletedCategories.value.push(name)
+    }
+    if (activeCategory.value === name) {
+      activeCategory.value = '全部'
+      if (activeTab.value === 'todo') {
+        await loadTodos()
+      } else {
+        await loadNotes()
+      }
+    }
+  }
+
   function setActiveTab(tab) {
     activeTab.value = tab
     currentPage.value = 1
@@ -251,17 +282,17 @@ export const useNotesStore = defineStore('notes', () => {
   }
 
   return {
-    todos, notes, categories,
+    todos, notes, categories, deletedCategories,
     activeTab, activeCategory, searchQuery,
     selectedItem, selectedType,
     isTodosLoading, isNotesLoading, isDetailLoading,
     error, currentPage, totalCount, pageSize,
     loadTodos, loadNotes, loadCategories,
-    addTodo, addNote,
+    addTodo, addNote, addCategory,
     openDetail, closeDetail,
     toggleTodoComplete,
     saveTodoEdit, saveNoteEdit,
-    removeTodo, removeNote,
+    removeTodo, removeNote, removeCategory,
     setActiveTab, setActiveCategory, setSearchQuery, setPage,
   }
 })

@@ -1,6 +1,6 @@
 <template>
   <div class="main-layout">
-    <Sidebar />
+    <Sidebar @delete-category="onRequestDeleteCategory" />
     <ContentArea
       @select="onSelect"
       @create="onCreate"
@@ -49,6 +49,7 @@ function showToast({ message, type = 'error' }) {
 const showConfirm = ref(false)
 const confirmMessage = ref('')
 const pendingDelete = ref(null)
+const pendingDeleteCategory = ref(null)
 
 function onRequestDelete({ item, type }) {
   pendingDelete.value = { item, type }
@@ -56,22 +57,39 @@ function onRequestDelete({ item, type }) {
   showConfirm.value = true
 }
 
+function onRequestDeleteCategory(name) {
+  pendingDeleteCategory.value = name
+  confirmMessage.value = `确定要删除分类「${name}」吗？所有属于该分类的条目将变为无分类状态。`
+  showConfirm.value = true
+}
+
 async function onConfirmDelete() {
   showConfirm.value = false
-  if (!pendingDelete.value) return
-  const { item, type } = pendingDelete.value
-  try {
-    if (type === 'todo') {
-      await store.removeTodo(item.id)
-    } else {
-      await store.removeNote(item.id)
+  if (pendingDelete.value) {
+    const { item, type } = pendingDelete.value
+    try {
+      if (type === 'todo') {
+        await store.removeTodo(item.id)
+      } else {
+        await store.removeNote(item.id)
+      }
+      store.closeDetail()
+      showToast({ message: '删除成功', type: 'success' })
+    } catch (e) {
+      showToast({ message: '删除失败', type: 'error' })
     }
-    store.closeDetail()
-    showToast({ message: '删除成功', type: 'success' })
-  } catch (e) {
-    showToast({ message: '删除失败', type: 'error' })
+    pendingDelete.value = null
+    return
   }
-  pendingDelete.value = null
+  if (pendingDeleteCategory.value) {
+    try {
+      await store.removeCategory(pendingDeleteCategory.value)
+      showToast({ message: `分类「${pendingDeleteCategory.value}」已删除`, type: 'success' })
+    } catch (e) {
+      showToast({ message: '删除分类失败', type: 'error' })
+    }
+    pendingDeleteCategory.value = null
+  }
 }
 
 async function onSelect(item, type) {

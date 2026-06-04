@@ -150,18 +150,29 @@
                 @click="startNewCategory"
               >＋ 新建分类</button>
             </template>
-            <input
-              v-else
-              ref="newCatInput"
-              v-model="newCategoryName"
-              type="text"
-              class="new-category-input"
-              placeholder="输入新分类…"
-              maxlength="50"
-              @keydown.enter.prevent="confirmNewCategory"
-              @blur="confirmNewCategory"
-              @keydown.escape.prevent="cancelNewCategory"
-            />
+            <div v-else class="new-category-row">
+              <input
+                ref="newCatInput"
+                v-model="newCategoryName"
+                type="text"
+                class="new-category-input"
+                placeholder="输入新分类…"
+                maxlength="50"
+                @keydown.enter.prevent="saveNewCategory"
+                @keydown.escape.prevent="cancelNewCategory"
+              />
+              <button
+                type="button"
+                class="new-category-save-btn"
+                :disabled="!newCategoryName.trim()"
+                @click="saveNewCategory"
+                aria-label="保存分类"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                  <path d="M11 4l-5 5-3-3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
         <div v-if="store.selectedType === 'todo'" class="form-group">
@@ -276,11 +287,15 @@ function startNewCategory() {
   newCategoryName.value = ''
 }
 
-function confirmNewCategory() {
+function saveNewCategory() {
   const trimmed = newCategoryName.value.trim()
-  if (trimmed) {
-    editForm.value.category = trimmed
+  if (!trimmed) {
+    isCreatingCategory.value = false
+    newCategoryName.value = ''
+    return
   }
+  store.addCategory(trimmed)
+  editForm.value.category = trimmed
   isCreatingCategory.value = false
   newCategoryName.value = ''
 }
@@ -907,8 +922,14 @@ async function onToggleComplete() {
   color: var(--text-muted);
 }
 
+.new-category-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .new-category-input {
-  width: 130px;
+  width: 110px;
   padding: 4px 8px;
   border: 2px solid var(--accent);
   border-radius: var(--radius-md);
@@ -918,5 +939,29 @@ async function onToggleComplete() {
   outline: none;
   box-shadow: 0 0 0 3px var(--accent-soft);
   box-sizing: border-box;
+}
+
+.new-category-save-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--text-inverse);
+  border: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.new-category-save-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.new-category-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>

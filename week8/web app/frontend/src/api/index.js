@@ -53,4 +53,8 @@ export function deleteNote(id) {
   return api.delete(`/notes/${id}`)
 }
 
+export function deleteCategory(name) {
+  return api.delete('/categories/delete', { params: { name } })
+}
+
 export default api
