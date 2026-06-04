@@ -19,11 +19,17 @@
 | Layer | File | Change |
 |-------|------|--------|
 | Store | `stores/notes.js` | Add `addCategory(name)` action: pushes the name into `categories.value` if not already present. |
-| Utility | `utils/categories.js` | Add `generateCategoryColor(name)` — produces a deterministic color from the category name hash, so new categories get a distinct visual identity. |
-| Component | `components/DetailPanel.vue` | Add a save/confirm button (checkmark icon) next to the new-category input. On confirm (Enter or button click), call `store.addCategory(trimmedName)` then set `editForm.category`. |
+| Utility | `utils/categories.js` | Add `generateCategoryColor(name)` and `generateCategoryBgColor(name)` — produces deterministic text/background colors from a hash of the category name string, so custom categories get a consistent and unique color-coded chip appearance. Same name always yields the same color across refreshes. |
+| Component | `components/DetailPanel.vue` | Add a save/confirm button (checkmark icon) next to the new-category input. On confirm (Enter or button click), call `store.addCategory(trimmedName)` then set `editForm.category` to the new name so it becomes the actively selected category. |
 
 **Flow:**
-User types category name → clicks save button (or presses Enter) → category pushed to store.categories → sidebar reactively displays it → category selected in the edit form.
+User types category name → clicks save button (or presses Enter) → category pushed to `store.categories` → sidebar reactively displays it → `editForm.category` set to the new name → the new category chip is immediately shown as selected in the chip bar.
+
+**Auto-select behavior:** After confirming a new category, `editForm.category` is set to the new name, so the category chip for the newly created category appears selected. This provides immediate visual feedback that the category was created and is now applied to the current item being edited.
+
+**Color allocation for custom categories:** `generateCategoryColor(name)` hashes the category name string to produce a deterministic HSL color value. A corresponding `generateCategoryBgColor(name)` produces a lighter background variant of the same hue. Since the hash is based on the category name, identical names always yield identical colors — even across page refreshes and different sessions.
+
+**`store.categories` data source:** On app mount (`MainLayout.vue` `onMounted`), `store.loadCategories()` calls `GET /api/v1/categories`. The backend query (`CategoryListView`) collects distinct category values from both the `Todo` and `Note` tables via `.values_list("category", flat=True).distinct()`, returning a merged/sorted array of all category names currently in use. This means a category only appears in the sidebar if at least one todo or note has that category value assigned.
 
 ---
 
