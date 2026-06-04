@@ -77,10 +77,48 @@
           </div>
           <div class="form-group">
             <label class="form-label">分类</label>
+            <div class="category-chip-bar">
+              <button
+                type="button"
+                class="category-chip"
+                :class="{ selected: editForm.category === '' && !isCreatingCategory }"
+                @click="selectCategory('')"
+              >无分类</button>
+              <button
+                v-for="cat in availableCategories"
+                :key="cat"
+                type="button"
+                class="category-chip"
+                :class="{ selected: editForm.category === cat }"
+                :style="editForm.category === cat ? chipActiveStyle(cat) : {}"
+                @click="selectCategory(cat)"
+              >{{ cat }}</button>
+              <template v-if="!isCreatingCategory">
+                <button
+                  type="button"
+                  class="category-chip new-category-chip"
+                  @click="startNewCategory"
+                >＋ 新建分类</button>
+              </template>
+              <input
+                v-else
+                ref="newCatInput"
+                v-model="newCategoryName"
+                type="text"
+                class="new-category-input"
+                placeholder="输入新分类…"
+                maxlength="50"
+                @keydown.enter.prevent="confirmNewCategory"
+                @blur="cancelNewCategory"
+              />
+            </div>
+          </div>
+          <div v-if="store.selectedType === 'todo'" class="form-group">
+            <label class="form-label">截止日期</label>
             <input
-              v-model="editForm.category"
+              v-model="editForm.due_date"
+              type="date"
               class="form-input"
-              maxlength="50"
             />
           </div>
           <div class="form-group">
@@ -106,12 +144,15 @@ import { ref, computed, watch, onUnmounted } from 'vue'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useNotesStore } from '../stores/notes.js'
-import { categoryColor, formatDate } from '../utils/categories.js'
+import { categoryColor, categoryBgColor, formatDate, PRESET_CATEGORIES } from '../utils/categories.js'
 
 const store = useNotesStore()
 const isEditing = ref(false)
-const editForm = ref({ title: '', category: '', content: '' })
+const editForm = ref({ title: '', category: '', content: '', due_date: '' })
 const formErrors = ref({})
+const isCreatingCategory = ref(false)
+const newCategoryName = ref('')
+const newCatInput = ref(null)
 
 // Markdown 解析 debounce timer 清理
 let renderTimer = null
@@ -125,11 +166,20 @@ watch(() => store.selectedItem, (item) => {
       title: item.title || '',
       category: item.category || '',
       content: item.content || '',
+      due_date: item.due_date || '',
     }
     formErrors.value = {}
     isEditing.value = true
   } else {
     isEditing.value = false
+  }
+})
+
+watch(isCreatingCategory, (val) => {
+  if (val) {
+    setTimeout(() => {
+      newCatInput.value?.focus()
+    }, 50)
   }
 })
 
@@ -141,12 +191,52 @@ const renderedMarkdown = computed(() => {
   return DOMPurify.sanitize(raw)
 })
 
+const availableCategories = computed(() => {
+  const presets = PRESET_CATEGORIES.filter(c => c !== '全部')
+  const custom = store.categories.filter(c => !PRESET_CATEGORIES.includes(c))
+  return [...presets, ...custom]
+})
+
+function selectCategory(cat) {
+  isCreatingCategory.value = false
+  newCategoryName.value = ''
+  editForm.value.category = cat
+}
+
+function startNewCategory() {
+  isCreatingCategory.value = true
+  newCategoryName.value = ''
+}
+
+function confirmNewCategory() {
+  const trimmed = newCategoryName.value.trim()
+  if (trimmed) {
+    editForm.value.category = trimmed
+  }
+  isCreatingCategory.value = false
+  newCategoryName.value = ''
+}
+
+function cancelNewCategory() {
+  isCreatingCategory.value = false
+  newCategoryName.value = ''
+}
+
+function chipActiveStyle(cat) {
+  return {
+    borderColor: categoryColor(cat),
+    background: categoryBgColor(cat),
+    color: categoryColor(cat),
+  }
+}
+
 function startEdit() {
   const item = store.selectedItem
   editForm.value = {
     title: item.title || '',
     category: item.category || '',
     content: item.content || '',
+    due_date: item.due_date || '',
   }
   formErrors.value = {}
   isEditing.value = true
@@ -176,6 +266,9 @@ async function save() {
       title: editForm.value.title.trim(),
       category: editForm.value.category.trim(),
       content: editForm.value.content,
+    }
+    if (store.selectedType === 'todo') {
+      data.due_date = editForm.value.due_date || null
     }
     const isCreate = !store.selectedItem.id
     if (isCreate) {
@@ -387,5 +480,52 @@ async function onToggleComplete() {
   padding: 40px 16px;
   text-align: center;
   color: #999;
+}
+
+/* ── Category Chip Bar ── */
+.category-chip-bar {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.category-chip {
+  padding: 4px 12px;
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-muted);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.category-chip:hover {
+  border-color: var(--border-focus);
+  color: var(--text-secondary);
+}
+
+.category-chip.selected {
+  font-weight: 600;
+}
+
+.new-category-chip {
+  border-style: dashed;
+  color: var(--text-muted);
+}
+
+.new-category-input {
+  width: 130px;
+  padding: 4px 8px;
+  border: 2px solid var(--accent);
+  border-radius: var(--radius-md);
+  font-size: 0.75rem;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-sizing: border-box;
 }
 </style>

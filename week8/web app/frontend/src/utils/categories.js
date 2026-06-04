@@ -13,6 +13,11 @@ export function categoryColor(cat) {
   return CATEGORY_COLORS[cat] || DEFAULT_CATEGORY_COLOR
 }
 
+export function categoryBgColor(cat) {
+  const hex = CATEGORY_COLORS[cat] || DEFAULT_CATEGORY_COLOR
+  return hex + '20'
+}
+
 export function formatDate(dateStr) {
   if (!dateStr) return ''
   const date = new Date(dateStr)
