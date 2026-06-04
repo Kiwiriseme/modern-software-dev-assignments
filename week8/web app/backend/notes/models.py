@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.db import models
 
 
@@ -12,6 +14,7 @@ class Todo(models.Model):
     title = models.CharField(max_length=200)
     content = models.TextField(blank=True, default="")
     category = models.CharField(max_length=50, blank=True, default="")
+    due_date = models.DateField(null=True, blank=True, default=date.today)
     is_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
