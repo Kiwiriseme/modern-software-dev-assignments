@@ -17,13 +17,14 @@
       class="category-tag"
       :style="{ background: categoryColor(todo.category) }"
     >{{ todo.category }}</span>
-    <span class="date">{{ formatDate(todo.created_at) }}</span>
+    <span class="date">{{ formattedDueDate }}</span>
   </div>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useNotesStore } from '../stores/notes.js'
-import { categoryColor, formatRelativeDate } from '../utils/categories.js'
+import { categoryColor, formatDate } from '../utils/categories.js'
 
 const props = defineProps({
   todo: { type: Object, required: true },
@@ -32,16 +33,19 @@ const props = defineProps({
 const emit = defineEmits(['select', 'toast'])
 const store = useNotesStore()
 
+const formattedDueDate = computed(() => {
+  if (props.todo.due_date) {
+    return formatDate(props.todo.due_date)
+  }
+  return '---'
+})
+
 async function onToggle() {
   try {
     await store.toggleTodoComplete(props.todo)
   } catch (e) {
     emit('toast', { message: '操作失败', type: 'error' })
   }
-}
-
-function formatDate(dateStr) {
-  return formatRelativeDate(dateStr)
 }
 </script>
 
