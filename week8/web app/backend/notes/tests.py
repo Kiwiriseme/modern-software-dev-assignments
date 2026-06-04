@@ -312,3 +312,36 @@ class CategoryAPITest(APITestCase):
         response = self.client.get("/api/v1/categories")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, [])
+
+
+class CategoryDeleteAPITest(APITestCase):
+    def setUp(self):
+        Todo.objects.create(title="Work Todo", category="工作")
+        Todo.objects.create(title="Another Work Todo", category="工作")
+        Note.objects.create(title="Work Note", category="工作")
+        Todo.objects.create(title="Study Todo", category="学习")
+
+    def test_delete_category_clears_items(self):
+        response = self.client.delete("/api/v1/categories/delete?name=工作")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["deleted"], "工作")
+        self.assertEqual(response.data["cleared"], 3)
+
+    def test_deleted_category_items_now_have_empty_category(self):
+        self.client.delete("/api/v1/categories/delete?name=工作")
+        self.assertEqual(Todo.objects.filter(category="工作").count(), 0)
+        self.assertEqual(Note.objects.filter(category="工作").count(), 0)
+        self.assertEqual(Todo.objects.filter(category="").count(), 2)
+
+    def test_delete_category_only_affects_target(self):
+        self.client.delete("/api/v1/categories/delete?name=工作")
+        self.assertEqual(Todo.objects.filter(category="学习").count(), 1)
+
+    def test_delete_missing_name_returns_400(self):
+        response = self.client.delete("/api/v1/categories/delete")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_delete_nonexistent_category_succeeds_with_zero(self):
+        response = self.client.delete("/api/v1/categories/delete?name=不存在")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["cleared"], 0)

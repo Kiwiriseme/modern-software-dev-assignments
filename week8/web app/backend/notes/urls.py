@@ -1,4 +1,5 @@
 from django.urls import path
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.routers import DefaultRouter
 from rest_framework.views import APIView
@@ -23,6 +24,18 @@ class CategoryListView(APIView):
         return Response(all_categories)
 
 
+class CategoryDeleteView(APIView):
+    def delete(self, request):
+        name = request.query_params.get("name", "")
+        if not name:
+            return Response({"detail": "缺少分类名称参数"}, status=status.HTTP_400_BAD_REQUEST)
+        todo_count = Todo.objects.filter(category=name).update(category="")
+        note_count = Note.objects.filter(category=name).update(category="")
+        total = todo_count + note_count
+        return Response({"deleted": name, "cleared": total})
+
+
 urlpatterns = router.urls + [
     path("categories", CategoryListView.as_view(), name="categories"),
+    path("categories/delete", CategoryDeleteView.as_view(), name="category-delete"),
 ]
