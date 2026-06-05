@@ -88,13 +88,17 @@ async function onSearchInput(e) {
   }, 300)
 }
 
-function clearSearch() {
+async function clearSearch() {
   localSearch.value = ''
   store.setSearchQuery('')
-  if (store.activeTab === 'todo') {
-    store.loadTodos()
-  } else {
-    store.loadNotes()
+  try {
+    if (store.activeTab === 'todo') {
+      await store.loadTodos()
+    } else {
+      await store.loadNotes()
+    }
+  } catch (e) {
+    emit('toast', { message: '加载失败', type: 'error' })
   }
 }
 

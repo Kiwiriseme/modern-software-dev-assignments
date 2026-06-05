@@ -1,0 +1,72 @@
+<h2>UI 组件设计</h2>
+<p class="subtitle">Settings Dialog + DetailPanel 按钮</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Settings Dialog</div>
+    <div class="mockup-body">
+      <h3 style="margin:0 0 16px;font-size:18px;">⚙ API 设置</h3>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">API Base URL</label>
+        <input class="mock-input" value="https://api.openai.com/v1" style="width:100%">
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">Model</label>
+        <input class="mock-input" value="gpt-4o-mini" style="width:100%">
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">API Key</label>
+        <input class="mock-input" type="password" value="****" style="width:100%">
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;">
+        <button class="mock-button" style="background:#eee;color:#333;">取消</button>
+        <button class="mock-button" style="background:#4f46e5;color:#fff;">保存</button>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">DetailPanel (笔记模式)</div>
+    <div class="mockup-body">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <h3 style="margin:0;">笔记标题</h3>
+        <div style="display:flex;gap:6px;">
+          <button class="mock-button" style="font-size:12px;padding:4px 10px;">📥 导出</button>
+          <button class="mock-button" style="font-size:12px;padding:4px 10px;background:#f0f9ff;color:#0369a1;border-color:#bae6fd;">🤖 AI 总结待办</button>
+          <button class="mock-button" style="font-size:12px;padding:4px 10px;color:#dc2626;">🗑 删除</button>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#999;margin-bottom:16px;">创建于 2026-06-05 10:30</div>
+      <div class="placeholder" style="min-height:150px;">渲染的 Markdown 笔记内容区域...</div>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:24px;">
+  <h3>交互细节</h3>
+
+  <div class="cards">
+    <div class="card">
+      <div class="card-body">
+        <h3>🔴 未配置 API 时</h3>
+        <p>点击 "AI 总结待办" → 弹出确认框：<br/>
+        <em>"请先配置 AI API 设置"</em><br/>
+        两个按钮：<strong>"去设置"</strong>（打开设置弹窗）、<strong>"取消"</strong></p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>🔄 Loading 状态</h3>
+        <p>点击按钮后 → 按钮文字变为 "总结中..." + spinner 动画，按钮禁用防重复点击。<br/>
+        后端处理（调用AI API + 创建Todo）→ 响应返回</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <h3>✅ 完成状态</h3>
+        <p>按钮恢复正常 → Toast 通知：<br/>
+        "已添加 3 个待办事项" 或 "未发现待办事项"<br/>
+        Todo 列表自动刷新，Sidebar 计数更新</p>
+      </div>
+    </div>
+  </div>
+</div>
