@@ -1,3 +1,4 @@
+from django.db import transaction
 from django.urls import path
 from rest_framework import status
 from rest_framework.response import Response
@@ -5,11 +6,12 @@ from rest_framework.routers import DefaultRouter
 from rest_framework.views import APIView
 
 from notes.models import Note, Todo
-from notes.views import NoteViewSet, TodoViewSet
+from notes.views import AISettingsViewSet, NoteViewSet, TodoViewSet
 
 router = DefaultRouter(trailing_slash=False)
 router.register(r"todos", TodoViewSet, basename="todo")
 router.register(r"notes", NoteViewSet, basename="note")
+router.register(r"ai-settings", AISettingsViewSet, basename="ai-settings")
 
 
 class CategoryListView(APIView):
@@ -25,6 +27,7 @@ class CategoryListView(APIView):
 
 
 class CategoryDeleteView(APIView):
+    @transaction.atomic
     def delete(self, request):
         name = request.query_params.get("name", "")
         if not name:
