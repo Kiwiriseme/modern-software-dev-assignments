@@ -130,15 +130,10 @@ let categoryDebounce = null
 watch(() => store.activeCategory, () => {
   clearTimeout(categoryDebounce)
   categoryDebounce = setTimeout(async () => {
-    try {
-      if (store.activeTab === 'todo') {
-        await store.loadTodos()
-      } else {
-        await store.loadNotes()
-      }
-    } catch (e) {
-      showToast({ message: '加载失败', type: 'error' })
-    }
+    await Promise.allSettled([
+      store.loadTodos(),
+      store.loadNotes()
+    ])
   }, 150)
 })
 
@@ -146,6 +141,7 @@ onMounted(async () => {
   try {
     await Promise.all([
       store.loadTodos(),
+      store.loadNotes(),
       store.loadCategories(),
     ])
   } catch (e) {
