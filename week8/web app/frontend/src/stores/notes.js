@@ -274,6 +274,27 @@ export const useNotesStore = defineStore('notes', () => {
     }
   }
 
+  async function tryLeaveEdit() {
+    if (!isDirty.value) {
+      return { allowed: true, action: 'none' }
+    }
+    if (showLeaveConfirm.value) {
+      return { allowed: false }
+    }
+    return new Promise((resolve) => {
+      pendingLeave.value = { resolve }
+      showLeaveConfirm.value = true
+    })
+  }
+
+  function resolveLeave(action) {
+    if (pendingLeave.value) {
+      pendingLeave.value.resolve({ allowed: action !== 'cancel', action })
+    }
+    showLeaveConfirm.value = false
+    pendingLeave.value = null
+  }
+
   function setActiveTab(tab) {
     activeTab.value = tab
     currentPage.value = 1
@@ -307,5 +328,6 @@ export const useNotesStore = defineStore('notes', () => {
     saveTodoEdit, saveNoteEdit,
     removeTodo, removeNote, removeCategory,
     setActiveTab, setActiveCategory, setSearchQuery, setPage,
+    tryLeaveEdit, resolveLeave,
   }
 })
