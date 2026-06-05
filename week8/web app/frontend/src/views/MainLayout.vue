@@ -130,10 +130,13 @@ let categoryDebounce = null
 watch(() => store.activeCategory, () => {
   clearTimeout(categoryDebounce)
   categoryDebounce = setTimeout(async () => {
-    await Promise.allSettled([
+    const results = await Promise.allSettled([
       store.loadTodos(),
       store.loadNotes()
     ])
+    if (results.every(r => r.status === 'rejected')) {
+      showToast({ message: '加载失败', type: 'error' })
+    }
   }, 150)
 })
 

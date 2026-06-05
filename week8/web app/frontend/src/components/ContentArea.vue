@@ -31,7 +31,8 @@ const emit = defineEmits(['select', 'create', 'toast'])
 const store = useNotesStore()
 
 const totalPages = computed(() => {
-  return Math.ceil(store.totalCount / store.pageSize)
+  const count = store.activeTab === 'todo' ? store.todoCount : store.noteCount
+  return Math.ceil(count / store.pageSize)
 })
 
 function onSelect(item, type) {
