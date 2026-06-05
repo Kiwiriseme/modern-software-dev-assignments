@@ -1,9 +1,12 @@
+from unittest.mock import MagicMock, patch
+
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from notes.models import Note, Todo
+from notes.ai_service import decrypt_api_key, encrypt_api_key
+from notes.models import AISettings, Note, Todo
 from notes.serializers import NoteSerializer, TodoSerializer
 
 
@@ -345,3 +348,242 @@ class CategoryDeleteAPITest(APITestCase):
         response = self.client.delete("/api/v1/categories/delete?name=不存在")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["cleared"], 0)
+
+
+class AISettingsModelTest(TestCase):
+    def test_get_solo_creates_default(self):
+        self.assertEqual(AISettings.objects.count(), 0)
+        s = AISettings.get_solo()
+        self.assertEqual(s.model, "gpt-4o-mini")
+        self.assertEqual(s.base_url, "https://api.openai.com/v1")
+        self.assertEqual(s.api_key, "")
+        self.assertFalse(s.is_configured())
+
+    def test_get_solo_returns_existing(self):
+        s1 = AISettings.get_solo()
+        s2 = AISettings.get_solo()
+        self.assertEqual(s1.pk, s2.pk)
+        self.assertEqual(AISettings.objects.count(), 1)
+
+    def test_is_configured_with_key(self):
+        s = AISettings.get_solo()
+        s.api_key = encrypt_api_key("sk-test-key")
+        s.save()
+        self.assertTrue(s.is_configured())
+
+
+class AISettingsEncryptionTest(TestCase):
+    def test_encrypt_decrypt_roundtrip(self):
+        plaintext = "sk-test-api-key-12345"
+        ciphertext = encrypt_api_key(plaintext)
+        self.assertNotEqual(ciphertext, plaintext)
+        self.assertNotIn("sk-test", ciphertext)
+        decrypted = decrypt_api_key(ciphertext)
+        self.assertEqual(decrypted, plaintext)
+
+    def test_encrypt_empty_key(self):
+        self.assertEqual(encrypt_api_key(""), "")
+
+    def test_decrypt_empty_key(self):
+        self.assertEqual(decrypt_api_key(""), "")
+
+
+class AISettingsAPITest(APITestCase):
+    def test_get_unconfigured_settings(self):
+        response = self.client.get("/api/v1/ai-settings/1")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["is_configured"])
+        self.assertEqual(response.data["api_key"], "")
+        self.assertEqual(response.data["model"], "gpt-4o-mini")
+
+    def test_put_settings_masks_key_in_response(self):
+        response = self.client.put(
+            "/api/v1/ai-settings/1",
+            {
+                "api_key": "sk-my-secret-key",
+                "base_url": "https://api.openai.com/v1",
+                "model": "gpt-4o",
+            },
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["api_key"], "***")
+
+    def test_put_settings_encrypts_key_at_rest(self):
+        self.client.put(
+            "/api/v1/ai-settings/1",
+            {
+                "api_key": "sk-my-secret-key",
+                "base_url": "https://api.openai.com/v1",
+                "model": "gpt-4o",
+            },
+            format="json",
+        )
+        s = AISettings.get_solo()
+        # The stored value should be encrypted, not the plaintext
+        self.assertNotEqual(s.api_key, "sk-my-secret-key")
+        self.assertTrue(len(s.api_key) > 0)
+        # But it should decrypt back
+        self.assertEqual(decrypt_api_key(s.api_key), "sk-my-secret-key")
+
+    def test_put_star_preserves_existing_key(self):
+        # First set a key
+        self.client.put(
+            "/api/v1/ai-settings/1",
+            {
+                "api_key": "sk-original-key",
+                "base_url": "https://api.openai.com/v1",
+                "model": "gpt-4o",
+            },
+            format="json",
+        )
+        # Then update with *** to preserve
+        self.client.put(
+            "/api/v1/ai-settings/1",
+            {"api_key": "***", "base_url": "https://api.deepseek.com/v1", "model": "deepseek-chat"},
+            format="json",
+        )
+        s = AISettings.get_solo()
+        self.assertEqual(decrypt_api_key(s.api_key), "sk-original-key")
+        self.assertEqual(s.model, "deepseek-chat")
+        self.assertEqual(s.base_url, "https://api.deepseek.com/v1")
+
+
+class AISummarizeAPITest(APITestCase):
+    def setUp(self):
+        self.note = Note.objects.create(
+            title="Meeting Notes",
+            content="需要完成项目报告\n需要回复客户邮件\n预约下周的会议室",
+            category="工作",
+        )
+
+    def test_summarize_without_settings(self):
+        response = self.client.post(f"/api/v1/notes/{self.note.id}/summarize-todos")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("请先配置", response.data["detail"])
+
+    def test_summarize_empty_content(self):
+        AISettings.get_solo()  # ensure exists
+        note = Note.objects.create(title="Empty", content="", category="工作")
+        # Configure AI settings
+        s = AISettings.get_solo()
+        s.api_key = encrypt_api_key("sk-test")
+        s.save()
+        response = self.client.post(f"/api/v1/notes/{note.id}/summarize-todos")
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("为空", response.data["detail"])
+
+    @patch("notes.ai_service.requests.post")
+    def test_summarize_success(self, mock_post):
+        # Configure AI settings
+        s = AISettings.get_solo()
+        s.api_key = encrypt_api_key("sk-test")
+        s.save()
+
+        # Mock AI response
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "choices": [
+                {
+                    "message": {
+                        "content": '[{"title":"完成项目报告"},{"title":"回复客户邮件"},{"title":"预约会议室"}]'
+                    }
+                }
+            ]
+        }
+        mock_post.return_value = mock_resp
+
+        response = self.client.post(f"/api/v1/notes/{self.note.id}/summarize-todos")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 3)
+        self.assertEqual(len(response.data["todos"]), 3)
+
+        # Verify todos were created with correct category
+        todos = Todo.objects.filter(category="工作")
+        self.assertEqual(todos.count(), 3)
+        titles = [t.title for t in todos]
+        self.assertIn("完成项目报告", titles)
+        self.assertIn("回复客户邮件", titles)
+        self.assertIn("预约会议室", titles)
+
+    @patch("notes.ai_service.requests.post")
+    def test_summarize_no_todos_found(self, mock_post):
+        s = AISettings.get_solo()
+        s.api_key = encrypt_api_key("sk-test")
+        s.save()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"choices": [{"message": {"content": "[]"}}]}
+        mock_post.return_value = mock_resp
+
+        response = self.client.post(f"/api/v1/notes/{self.note.id}/summarize-todos")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 0)
+        self.assertEqual(len(response.data["todos"]), 0)
+
+    @patch("notes.ai_service.requests.post")
+    def test_summarize_ai_returns_401(self, mock_post):
+        s = AISettings.get_solo()
+        s.api_key = encrypt_api_key("sk-test")
+        s.save()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 401
+        mock_resp.json.return_value = {"error": "Unauthorized"}
+        mock_resp.raise_for_status.side_effect = Exception("401 Client Error: Unauthorized")
+        mock_post.return_value = mock_resp
+
+        response = self.client.post(f"/api/v1/notes/{self.note.id}/summarize-todos")
+        self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
+        self.assertIn("密钥无效", response.data["detail"])
+
+    @patch("notes.ai_service.requests.post")
+    def test_summarize_ai_timeout(self, mock_post):
+        s = AISettings.get_solo()
+        s.api_key = encrypt_api_key("sk-test")
+        s.save()
+
+        import requests as requests_lib
+
+        mock_post.side_effect = requests_lib.exceptions.Timeout("Connection timed out")
+
+        response = self.client.post(f"/api/v1/notes/{self.note.id}/summarize-todos")
+        self.assertEqual(response.status_code, status.HTTP_504_GATEWAY_TIMEOUT)
+
+    @patch("notes.ai_service.requests.post")
+    def test_summarize_malformed_response(self, mock_post):
+        s = AISettings.get_solo()
+        s.api_key = encrypt_api_key("sk-test")
+        s.save()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "choices": [{"message": {"content": "这是一些随意的文本，没有JSON"}}]
+        }
+        mock_post.return_value = mock_resp
+
+        response = self.client.post(f"/api/v1/notes/{self.note.id}/summarize-todos")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 0)
+
+    @patch("notes.ai_service.requests.post")
+    def test_summarize_with_code_fence_json(self, mock_post):
+        s = AISettings.get_solo()
+        s.api_key = encrypt_api_key("sk-test")
+        s.save()
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "choices": [
+                {"message": {"content": '```json\n[{"title":"任务A"},{"title":"任务B"}]\n```'}}
+            ]
+        }
+        mock_post.return_value = mock_resp
+
+        response = self.client.post(f"/api/v1/notes/{self.note.id}/summarize-todos")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 2)

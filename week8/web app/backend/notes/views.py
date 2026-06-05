@@ -70,7 +70,11 @@ class NoteViewSet(BaseItemViewSet):
                     {"detail": "API 密钥无效，请检查设置"},
                     status=status.HTTP_502_BAD_GATEWAY,
                 )
-            if "timeout" in error_str.lower() or "Timeout" in error_str:
+            if (
+                "timeout" in error_str.lower()
+                or "Timeout" in error_str
+                or "timed out" in error_str.lower()
+            ):
                 return Response(
                     {"detail": "AI 请求超时，请重试"},
                     status=status.HTTP_504_GATEWAY_TIMEOUT,
