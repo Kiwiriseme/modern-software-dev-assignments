@@ -1,5 +1,6 @@
 from rest_framework import serializers
 
+from notes.ai_service import encrypt_api_key
 from notes.models import AISettings, Note, Todo
 
 
@@ -66,15 +67,11 @@ class AISettingsSerializer(serializers.ModelSerializer):
         if api_key == "***":
             validated_data.pop("api_key", None)
         else:
-            from notes.ai_service import encrypt_api_key
-
             validated_data["api_key"] = encrypt_api_key(api_key)
         return super().update(instance, validated_data)
 
     def create(self, validated_data):
         api_key = validated_data.get("api_key", "")
         if api_key and api_key != "***":
-            from notes.ai_service import encrypt_api_key
-
             validated_data["api_key"] = encrypt_api_key(api_key)
         return super().create(validated_data)
