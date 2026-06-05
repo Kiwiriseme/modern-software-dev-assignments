@@ -76,7 +76,8 @@ defineEmits(['confirm', 'cancel', 'discard'])
   justify-content: center;
 }
 
-.btn-cancel {
+.btn-cancel,
+.btn-discard {
   padding: 9px var(--space-xl);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -93,21 +94,10 @@ defineEmits(['confirm', 'cancel', 'discard'])
   color: var(--text-primary);
 }
 
-.btn-discard {
-  padding: 9px var(--space-xl);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  transition: all var(--duration-fast) var(--ease-out);
-}
-
 .btn-discard:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--error-bg);
+  color: var(--error);
+  border-color: var(--error);
 }
 
 .btn-confirm {
