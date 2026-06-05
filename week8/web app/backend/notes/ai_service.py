@@ -7,6 +7,7 @@ import re
 import requests
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
+from django.db import transaction
 
 from notes.models import AISettings, Todo
 
@@ -37,6 +38,7 @@ def decrypt_api_key(ciphertext: str) -> str:
     try:
         return f.decrypt(ciphertext.encode()).decode()
     except InvalidToken:
+        logger.warning("Failed to decrypt stored API key (invalid token)")
         return ""
 
 
@@ -46,8 +48,7 @@ SYSTEM_PROMPT = (
     "你是一个任务提取助手。请分析以下笔记内容，提取其中隐含的待办事项。"
     "每个待办事项应该是一个具体可执行的任务。"
     "以 JSON 数组格式返回，每个元素包含 title 字段。"
-    "如果没有待办事项，返回空数组 []。\n\n"
-    "笔记内容：\n{note_content}"
+    "如果没有待办事项，返回空数组 []。"
 )
 
 
@@ -67,7 +68,7 @@ def call_ai_api(ai_settings: AISettings, note_content: str):
     payload = {
         "model": ai_settings.model,
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT.format(note_content=note_content)},
+            {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": note_content},
         ],
         "temperature": 0.3,
@@ -77,9 +78,13 @@ def call_ai_api(ai_settings: AISettings, note_content: str):
     resp = requests.post(url, headers=headers, json=payload, timeout=30)
     resp.raise_for_status()
 
-    data = resp.json()
-    raw_text = data["choices"][0]["message"]["content"]
-    return _parse_todo_titles(raw_text)
+    try:
+        data = resp.json()
+        raw_text = data["choices"][0]["message"]["content"]
+        return _parse_todo_titles(raw_text)
+    except (KeyError, IndexError, TypeError) as e:
+        logger.error("Unexpected AI API response structure: %s", e)
+        raise AIResponseError(f"Unexpected response from AI API: {e}") from e
 
 
 def _parse_todo_titles(raw_text: str):
@@ -117,6 +122,11 @@ def _parse_todo_titles(raw_text: str):
     return []
 
 
+# ── Constants ────────────────────────────────────────────────────────────────
+
+MAX_CONTENT_CHARS = 8000
+
+
 # ── Summarize Action ────────────────────────────────────────────────────────
 
 
@@ -133,19 +143,20 @@ def summarize_note_todos(note):
     if not note.content or not note.content.strip():
         raise EmptyContentError("Note content is empty")
 
-    # Truncate content to 8000 chars to avoid token limits
-    truncated_content = note.content[:8000]
+    # Truncate content to avoid token limits
+    truncated_content = note.content[:MAX_CONTENT_CHARS]
 
     titles = call_ai_api(ai_settings, truncated_content)
 
-    created_todos = []
-    for title in titles:
-        todo = Todo.objects.create(
-            title=title,
-            content="",
-            category=note.category,
-        )
-        created_todos.append(todo)
+    with transaction.atomic():
+        created_todos = []
+        for title in titles:
+            todo = Todo.objects.create(
+                title=title,
+                content="",
+                category=note.category,
+            )
+            created_todos.append(todo)
 
     return created_todos, len(created_todos)
 
@@ -163,3 +174,7 @@ class AINotConfiguredError(AIServiceError):
 
 class EmptyContentError(AIServiceError):
     """Raised when note content is empty."""
+
+
+class AIResponseError(AIServiceError):
+    """Raised when the AI API returns an unexpected response structure."""
