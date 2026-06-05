@@ -168,11 +168,14 @@ async function onCloseDetail() {
   store.closeDetail()
 }
 
+let isRestoring = false
+
 watch(() => store.activeTab, async (newVal, oldVal) => {
+  if (isRestoring) { isRestoring = false; return }
   const result = await store.tryLeaveEdit()
   if (!result.allowed) {
+    isRestoring = true
     store.activeTab = oldVal
-    store.currentPage = 1
     return
   }
 
@@ -194,12 +197,13 @@ watch(() => store.activeTab, async (newVal, oldVal) => {
 
 let categoryDebounce = null
 watch(() => store.activeCategory, (newVal, oldVal) => {
+  if (isRestoring) { isRestoring = false; return }
   clearTimeout(categoryDebounce)
   categoryDebounce = setTimeout(async () => {
     const result = await store.tryLeaveEdit()
     if (!result.allowed) {
+      isRestoring = true
       store.activeCategory = oldVal
-      store.currentPage = 1
       return
     }
 
