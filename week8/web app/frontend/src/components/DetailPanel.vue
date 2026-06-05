@@ -234,6 +234,7 @@ const isCreatingCategory = ref(false)
 const newCategoryName = ref('')
 const newCatInput = ref(null)
 const isDirty = ref(false)
+let skipDirty = false
 
 let renderTimer = null
 onUnmounted(() => {
@@ -242,6 +243,7 @@ onUnmounted(() => {
 
 watch(() => store.selectedItem, (item) => {
   if (item && !item.id) {
+    skipDirty = true
     editForm.value = {
       title: item.title || '',
       category: item.category || '',
@@ -259,7 +261,13 @@ watch(() => store.selectedItem, (item) => {
 
 watch([() => editForm.value.title, () => editForm.value.content,
        () => editForm.value.category, () => editForm.value.due_date],
-  () => { isDirty.value = true },
+  () => {
+    if (skipDirty) {
+      skipDirty = false
+      return
+    }
+    isDirty.value = true
+  },
   { deep: false }
 )
 
@@ -335,6 +343,7 @@ function tagStyle(cat) {
 
 function startEdit() {
   const item = store.selectedItem
+  skipDirty = true
   editForm.value = {
     title: item.title || '',
     category: item.category || '',
