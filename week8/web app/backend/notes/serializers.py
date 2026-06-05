@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from notes.models import Note, Todo
+from notes.models import AISettings, Note, Todo
 
 
 class BaseItemSerializer(serializers.ModelSerializer):
@@ -38,3 +38,43 @@ class NoteSerializer(BaseItemSerializer):
         model = Note
         fields = "__all__"
         read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class AISettingsSerializer(serializers.ModelSerializer):
+    is_configured = serializers.SerializerMethodField()
+
+    class Meta:
+        model = AISettings
+        fields = ["api_key", "base_url", "model", "updated_at", "is_configured"]
+        read_only_fields = ["updated_at", "is_configured"]
+
+    def get_is_configured(self, obj):
+        return obj.is_configured()
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Mask the API key in responses
+        if instance.api_key:
+            data["api_key"] = "***"
+        else:
+            data["api_key"] = ""
+        return data
+
+    def update(self, instance, validated_data):
+        api_key = validated_data.get("api_key", "***")
+        # If the user sent "***", keep the existing key
+        if api_key == "***":
+            validated_data.pop("api_key", None)
+        else:
+            from notes.ai_service import encrypt_api_key
+
+            validated_data["api_key"] = encrypt_api_key(api_key)
+        return super().update(instance, validated_data)
+
+    def create(self, validated_data):
+        api_key = validated_data.get("api_key", "")
+        if api_key and api_key != "***":
+            from notes.ai_service import encrypt_api_key
+
+            validated_data["api_key"] = encrypt_api_key(api_key)
+        return super().create(validated_data)
