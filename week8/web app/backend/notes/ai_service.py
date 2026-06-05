@@ -2,6 +2,7 @@ import base64
 import hashlib
 import json
 import logging
+import re
 
 import requests
 from cryptography.fernet import Fernet, InvalidToken
@@ -66,10 +67,7 @@ def call_ai_api(ai_settings: AISettings, note_content: str):
     payload = {
         "model": ai_settings.model,
         "messages": [
-            {
-                "role": "system",
-                "content": "你是一个任务提取助手。请分析以下笔记内容，提取其中隐含的待办事项。每个待办事项应该是一个具体可执行的任务。以 JSON 数组格式返回，每个元素包含 title 字段。如果没有待办事项，返回空数组 []。",
-            },
+            {"role": "system", "content": SYSTEM_PROMPT.format(note_content=note_content)},
             {"role": "user", "content": note_content},
         ],
         "temperature": 0.3,
@@ -105,8 +103,6 @@ def _parse_todo_titles(raw_text: str):
         pass
 
     # Fallback: try to extract JSON array from the text
-    import re
-
     match = re.search(r"\[.*\]", text, re.DOTALL)
     if match:
         try:
