@@ -168,9 +168,13 @@ async function onCloseDetail() {
   store.closeDetail()
 }
 
-watch(() => store.activeTab, async () => {
+watch(() => store.activeTab, async (newVal, oldVal) => {
   const result = await store.tryLeaveEdit()
-  if (!result.allowed) return
+  if (!result.allowed) {
+    store.activeTab = oldVal
+    store.currentPage = 1
+    return
+  }
 
   if (result.action === 'save') {
     await detailPanelRef.value.save()
@@ -189,11 +193,15 @@ watch(() => store.activeTab, async () => {
 })
 
 let categoryDebounce = null
-watch(() => store.activeCategory, () => {
+watch(() => store.activeCategory, (newVal, oldVal) => {
   clearTimeout(categoryDebounce)
   categoryDebounce = setTimeout(async () => {
     const result = await store.tryLeaveEdit()
-    if (!result.allowed) return
+    if (!result.allowed) {
+      store.activeCategory = oldVal
+      store.currentPage = 1
+      return
+    }
 
     if (result.action === 'save') {
       await detailPanelRef.value.save()

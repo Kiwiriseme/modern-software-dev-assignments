@@ -355,7 +355,15 @@ function startEdit() {
   isEditing.value = true
 }
 
-function cancelEdit() {
+async function cancelEdit() {
+  if (isDirty.value) {
+    const result = await store.tryLeaveEdit()
+    if (!result.allowed) return
+    if (result.action === 'save') {
+      await save()
+      if (isDirty.value) return
+    }
+  }
   isDirty.value = false
   isEditing.value = false
   formErrors.value = {}
