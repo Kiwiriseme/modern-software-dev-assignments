@@ -3,6 +3,9 @@ import axios from 'axios'
 const api = axios.create({
   baseURL: '/api/v1',
   headers: { 'Content-Type': 'application/json' },
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
+  withCredentials: true,
 })
 
 export function fetchCategories() {
@@ -55,6 +58,18 @@ export function deleteNote(id) {
 
 export function deleteCategory(name) {
   return api.delete('/categories/delete', { params: { name } })
+}
+
+export function fetchAISettings() {
+  return api.get('/ai-settings/1')
+}
+
+export function saveAISettings(data) {
+  return api.put('/ai-settings/1', data)
+}
+
+export function summarizeNoteTodos(noteId) {
+  return api.post(`/notes/${noteId}/summarize-todos`)
 }
 
 export default api
