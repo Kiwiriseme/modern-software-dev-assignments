@@ -14,6 +14,9 @@ import {
   deleteTodo,
   deleteNote,
   deleteCategory,
+  fetchAISettings,
+  saveAISettings,
+  summarizeNoteTodos,
 } from '../api/index.js'
 
 export const useNotesStore = defineStore('notes', () => {
@@ -40,6 +43,13 @@ export const useNotesStore = defineStore('notes', () => {
   const isDirty = ref(false)
   const showLeaveConfirm = ref(false)
   const pendingLeave = ref(null)
+
+  // AI settings state
+  const aiSettings = ref(null)
+  const showSettings = ref(false)
+  const summarizingNoteId = ref(null)
+  const showAIConfigurePrompt = ref(false)
+  const pendingAIConfigureResolve = ref(null)
 
   function getListParams() {
     const params = { page: currentPage.value, page_size: pageSize }
@@ -315,6 +325,59 @@ export const useNotesStore = defineStore('notes', () => {
     currentPage.value = page
   }
 
+  async function loadAISettings() {
+    try {
+      const res = await fetchAISettings()
+      aiSettings.value = res.data
+    } catch (e) {
+      console.error('Failed to load AI settings', e)
+    }
+  }
+
+  async function saveAISettingsData(data) {
+    const res = await saveAISettings(data)
+    aiSettings.value = res.data
+    showSettings.value = false
+    return res.data
+  }
+
+  function openSettings() {
+    showSettings.value = true
+    loadAISettings()
+  }
+
+  function closeSettings() {
+    showSettings.value = false
+  }
+
+  async function summarizeTodos(noteId) {
+    if (!aiSettings.value?.is_configured) {
+      // Prompt user to configure first
+      return new Promise((resolve) => {
+        pendingAIConfigureResolve.value = resolve
+        showAIConfigurePrompt.value = true
+      })
+    }
+    try {
+      summarizingNoteId.value = noteId
+      const res = await summarizeNoteTodos(noteId)
+      return { success: true, count: res.data.count, todos: res.data.todos }
+    } catch (e) {
+      const detail = e.response?.data?.detail || e.message || 'AI 总结失败'
+      return { success: false, error: detail }
+    } finally {
+      summarizingNoteId.value = null
+    }
+  }
+
+  function resolveAIConfigure(action) {
+    showAIConfigurePrompt.value = false
+    if (pendingAIConfigureResolve.value) {
+      pendingAIConfigureResolve.value({ action })
+      pendingAIConfigureResolve.value = null
+    }
+  }
+
   return {
     todos, notes, categories, deletedCategories,
     activeTab, activeCategory, searchQuery,
@@ -330,5 +393,10 @@ export const useNotesStore = defineStore('notes', () => {
     removeTodo, removeNote, removeCategory,
     setActiveTab, setActiveCategory, setSearchQuery, setPage,
     tryLeaveEdit, resolveLeave,
+    aiSettings, showSettings, summarizingNoteId,
+    showAIConfigurePrompt,
+    loadAISettings, saveAISettingsData,
+    openSettings, closeSettings,
+    summarizeTodos, resolveAIConfigure,
   }
 })
