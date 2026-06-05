@@ -45,12 +45,12 @@
     <div class="sidebar-footer">
       <div class="footer-stats">
         <span class="stat-item">
-          <span class="stat-count">{{ store.todos.length }}</span>
+          <span class="stat-count">{{ store.todoCount }}</span>
           <span class="stat-label">待办</span>
         </span>
         <span class="stat-divider">·</span>
         <span class="stat-item">
-          <span class="stat-count">{{ store.notes.length }}</span>
+          <span class="stat-count">{{ store.noteCount }}</span>
           <span class="stat-label">笔记</span>
         </span>
       </div>
