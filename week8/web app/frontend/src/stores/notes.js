@@ -35,6 +35,12 @@ export const useNotesStore = defineStore('notes', () => {
   const totalCount = ref(0)
   const pageSize = 20
 
+  const todoCount = ref(0)
+  const noteCount = ref(0)
+  const isDirty = ref(false)
+  const showLeaveConfirm = ref(false)
+  const pendingLeave = ref(null)
+
   function getListParams() {
     const params = { page: currentPage.value, page_size: pageSize }
     if (activeCategory.value !== '全部') {
@@ -287,6 +293,7 @@ export const useNotesStore = defineStore('notes', () => {
     selectedItem, selectedType,
     isTodosLoading, isNotesLoading, isDetailLoading,
     error, currentPage, totalCount, pageSize,
+    todoCount, noteCount, isDirty, showLeaveConfirm,
     loadTodos, loadNotes, loadCategories,
     addTodo, addNote, addCategory,
     openDetail, closeDetail,
