@@ -252,6 +252,7 @@ watch(() => store.selectedItem, (item) => {
     isDirty.value = false
     isEditing.value = true
   } else {
+    isDirty.value = false
     isEditing.value = false
   }
 })

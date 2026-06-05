@@ -159,6 +159,7 @@ export const useNotesStore = defineStore('notes', () => {
   function closeDetail() {
     selectedItem.value = null
     selectedType.value = null
+    isDirty.value = false
   }
 
   async function toggleTodoComplete(todo) {
