@@ -38,3 +38,28 @@ class Note(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class AISettings(models.Model):
+    """Singleton model storing AI API configuration. Only one row should exist."""
+
+    api_key = models.CharField(max_length=512, blank=True, default="")
+    base_url = models.URLField(default="https://api.openai.com/v1")
+    model = models.CharField(max_length=100, default="gpt-4o-mini")
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "AI Settings"
+        verbose_name_plural = "AI Settings"
+
+    def __str__(self):
+        return f"AISettings (model={self.model})"
+
+    def is_configured(self):
+        return bool(self.api_key)
+
+    @classmethod
+    def get_solo(cls):
+        """Return the singleton AISettings instance, creating one if it doesn't exist."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
