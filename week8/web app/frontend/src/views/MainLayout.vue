@@ -10,6 +10,7 @@
       ref="detailPanelRef"
       @toast="showToast"
       @confirm-delete="onRequestDelete"
+      @close="onCloseDetail"
     />
     <Toast
       :message="toastMessage"
@@ -106,6 +107,14 @@ async function onConfirmDelete() {
 }
 
 async function onSelect(item, type) {
+  const result = await store.tryLeaveEdit()
+  if (!result.allowed) return
+
+  if (result.action === 'save') {
+    await detailPanelRef.value.save()
+    if (store.isDirty) return
+  }
+
   try {
     await store.openDetail(item.id, type)
   } catch (e) {
@@ -113,7 +122,15 @@ async function onSelect(item, type) {
   }
 }
 
-function onCreate() {
+async function onCreate() {
+  const result = await store.tryLeaveEdit()
+  if (!result.allowed) return
+
+  if (result.action === 'save') {
+    await detailPanelRef.value.save()
+    if (store.isDirty) return
+  }
+
   const base = {
     title: '',
     category: '',
@@ -127,7 +144,27 @@ function onCreate() {
   store.selectedType = store.activeTab === 'text' ? 'note' : 'todo'
 }
 
+async function onCloseDetail() {
+  const result = await store.tryLeaveEdit()
+  if (!result.allowed) return
+
+  if (result.action === 'save') {
+    await detailPanelRef.value.save()
+    if (store.isDirty) return
+  }
+
+  store.closeDetail()
+}
+
 watch(() => store.activeTab, async () => {
+  const result = await store.tryLeaveEdit()
+  if (!result.allowed) return
+
+  if (result.action === 'save') {
+    await detailPanelRef.value.save()
+    if (store.isDirty) return
+  }
+
   try {
     if (store.activeTab === 'todo') {
       await store.loadTodos()
@@ -143,6 +180,14 @@ let categoryDebounce = null
 watch(() => store.activeCategory, () => {
   clearTimeout(categoryDebounce)
   categoryDebounce = setTimeout(async () => {
+    const result = await store.tryLeaveEdit()
+    if (!result.allowed) return
+
+    if (result.action === 'save') {
+      await detailPanelRef.value.save()
+      if (store.isDirty) return
+    }
+
     const results = await Promise.allSettled([
       store.loadTodos(),
       store.loadNotes()
