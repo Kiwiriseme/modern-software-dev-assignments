@@ -114,6 +114,7 @@ export const useNotesStore = defineStore('notes', () => {
     } else {
       todos.value.unshift(res.data)
       totalCount.value++
+      todoCount.value++
       // 如果超出页面容量，移除最后一个
       if (todos.value.length > pageSize) {
         todos.value.pop()
@@ -131,6 +132,7 @@ export const useNotesStore = defineStore('notes', () => {
     } else {
       notes.value.unshift(res.data)
       totalCount.value++
+      noteCount.value++
       if (notes.value.length > pageSize) {
         notes.value.pop()
       }
@@ -231,6 +233,7 @@ export const useNotesStore = defineStore('notes', () => {
     if (idx !== -1) {
       todos.value.splice(idx, 1)
       totalCount.value--
+      todoCount.value--
     }
     if (todos.value.length === 0 && currentPage.value > 1) {
       currentPage.value = Math.max(1, currentPage.value - 1)
@@ -244,6 +247,7 @@ export const useNotesStore = defineStore('notes', () => {
     if (idx !== -1) {
       notes.value.splice(idx, 1)
       totalCount.value--
+      noteCount.value--
     }
     if (notes.value.length === 0 && currentPage.value > 1) {
       currentPage.value = Math.max(1, currentPage.value - 1)
