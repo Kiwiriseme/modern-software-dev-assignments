@@ -81,6 +81,18 @@ async function onConfirmDelete() {
   showConfirm.value = false
   if (pendingDelete.value) {
     const { item, type } = pendingDelete.value
+    const leaveResult = await store.tryLeaveEdit()
+    if (!leaveResult.allowed) {
+      pendingDelete.value = null
+      return
+    }
+    if (leaveResult.action === 'save') {
+      await detailPanelRef.value.save()
+      if (store.isDirty) {
+        pendingDelete.value = null
+        return
+      }
+    }
     try {
       if (type === 'todo') {
         await store.removeTodo(item.id)
