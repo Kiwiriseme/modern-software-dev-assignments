@@ -34,6 +34,16 @@
       @discard="store.resolveLeave('discard')"
       @cancel="store.resolveLeave('cancel')"
     />
+    <SettingsDialog />
+    <ConfirmDialog
+      :visible="store.showAIConfigurePrompt"
+      message="请先配置 AI API 设置"
+      confirm-text="去设置"
+      cancel-text="取消"
+      :show-discard="false"
+      @confirm="onAIConfigureGoSettings"
+      @cancel="store.resolveAIConfigure('cancel')"
+    />
   </div>
 </template>
 
@@ -42,6 +52,7 @@ import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useNotesStore } from '../stores/notes.js'
 import { getTodayDateString } from '../utils/categories.js'
 import Sidebar from '../components/Sidebar.vue'
+import SettingsDialog from '../components/SettingsDialog.vue'
 import ContentArea from '../components/ContentArea.vue'
 import DetailPanel from '../components/DetailPanel.vue'
 import Toast from '../components/Toast.vue'
@@ -75,6 +86,11 @@ function onRequestDeleteCategory(name) {
   pendingDeleteCategory.value = name
   confirmMessage.value = `确定要删除分类「${name}」吗？所有属于该分类的条目将变为无分类状态。`
   showConfirm.value = true
+}
+
+function onAIConfigureGoSettings() {
+  store.resolveAIConfigure('go-settings')
+  store.openSettings()
 }
 
 async function onConfirmDelete() {
@@ -228,6 +244,7 @@ onMounted(async () => {
       store.loadTodos(),
       store.loadNotes(),
       store.loadCategories(),
+      store.loadAISettings(),
     ])
   } catch (e) {
     showToast({ message: '加载失败', type: 'error' })
