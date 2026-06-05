@@ -7,6 +7,7 @@
       @toast="showToast"
     />
     <DetailPanel
+      ref="detailPanelRef"
       @toast="showToast"
       @confirm-delete="onRequestDelete"
     />
@@ -20,6 +21,17 @@
       :message="confirmMessage"
       @confirm="onConfirmDelete"
       @cancel="showConfirm = false"
+    />
+    <ConfirmDialog
+      :visible="store.showLeaveConfirm"
+      message="你有未保存的更改，是否保存后再离开？"
+      confirm-text="保存并离开"
+      cancel-text="取消"
+      :show-discard="true"
+      discard-text="不保存"
+      @confirm="store.resolveLeave('save')"
+      @discard="store.resolveLeave('discard')"
+      @cancel="store.resolveLeave('cancel')"
     />
   </div>
 </template>
@@ -35,6 +47,7 @@ import Toast from '../components/Toast.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
 
 const store = useNotesStore()
+const detailPanelRef = ref(null)
 
 const toastMessage = ref('')
 const toastType = ref('error')

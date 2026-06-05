@@ -3,7 +3,7 @@
     <template v-if="store.selectedItem">
       <!-- Header -->
       <div class="panel-header">
-        <button class="back-btn" @click="store.closeDetail()" aria-label="关闭">
+        <button class="back-btn" @click="emit('close')" aria-label="关闭">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path d="M11 4l-5 5 5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -283,7 +283,7 @@ watch(isCreatingCategory, (val) => {
   }
 })
 
-const emit = defineEmits(['toast', 'confirm-delete'])
+const emit = defineEmits(['toast', 'confirm-delete', 'close'])
 
 const renderedMarkdown = computed(() => {
   if (!store.selectedItem?.content) return '<p style="color: var(--text-muted); font-style: italic;">暂无内容</p>'
