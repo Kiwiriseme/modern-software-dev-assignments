@@ -25,6 +25,34 @@
             </svg>
           </button>
           <button
+            v-if="!isEditing && store.selectedType === 'note'"
+            class="action-btn icon-only"
+            @click="exportMarkdown"
+            aria-label="导出 Markdown"
+            title="导出 Markdown"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M8 2v8M5 7l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M3 11v1.5a1 1 0 001 1h8a1 1 0 001-1V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </button>
+          <button
+            v-if="!isEditing && store.selectedType === 'note'"
+            class="action-btn icon-only ai-btn"
+            :class="{ loading: store.summarizingNoteId === store.selectedItem?.id }"
+            :disabled="store.summarizingNoteId === store.selectedItem?.id"
+            @click="onAISummarize"
+            aria-label="AI 总结待办事项"
+            title="AI 总结待办事项"
+          >
+            <svg v-if="store.summarizingNoteId !== store.selectedItem?.id" width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <path d="M5 7l3-4 3 4M5 9l3 4 3-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="8" cy="5" r="1" fill="currentColor" opacity="0.3"/>
+              <circle cx="8" cy="11" r="1" fill="currentColor" opacity="0.3"/>
+            </svg>
+            <div v-else class="mini-spinner"></div>
+          </button>
+          <button
             v-if="!isEditing"
             class="action-btn icon-only danger"
             @click="requestDelete"
@@ -420,6 +448,51 @@ async function save() {
 function requestDelete() {
   emit('confirm-delete', { item: store.selectedItem, type: store.selectedType })
 }
+
+function exportMarkdown() {
+  const item = store.selectedItem
+  if (!item) return
+  const title = item.title || '未命名笔记'
+  const content = item.content || ''
+  const body = `# ${title}\n\n${content}`
+  const filename = title.replace(/[/\\:*?"<>|]/g, '-').trim() || '未命名笔记'
+  const blob = new Blob([body], { type: 'text/markdown' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `${filename}.md`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 100)
+}
+
+async function onAISummarize() {
+  const note = store.selectedItem
+  if (!note) return
+
+  const result = await store.summarizeTodos(note.id)
+  if (result === undefined) {
+    // User was prompted to configure API (showAIConfigurePrompt is now true)
+    return
+  }
+  if (result.success) {
+    emit('toast', {
+      message: result.count > 0 ? `已添加 ${result.count} 个待办事项` : '未发现待办事项',
+      type: 'success',
+    })
+    // Refresh todos if we're on the todo tab or need updated counts
+    if (store.activeTab === 'todo') {
+      try { await store.loadTodos() } catch (e) { /* ignore */ }
+    }
+    // Also reload categories in case new ones were created
+    try { await store.loadCategories() } catch (e) { /* ignore */ }
+  } else {
+    emit('toast', { message: result.error || 'AI 总结失败', type: 'error' })
+  }
+}
+
+defineExpose({ save })
 
 async function onToggleComplete() {
   try {
@@ -996,5 +1069,36 @@ async function onToggleComplete() {
 .new-category-save-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.action-btn.icon-only.ai-btn {
+  color: var(--accent);
+}
+
+.action-btn.icon-only.ai-btn:hover:not(:disabled) {
+  background: var(--accent-soft);
+  color: var(--accent-hover);
+}
+
+.action-btn.icon-only.ai-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.action-btn.icon-only.ai-btn.loading {
+  background: var(--accent-soft);
+}
+
+.mini-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>
