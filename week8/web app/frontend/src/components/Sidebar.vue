@@ -55,7 +55,21 @@
         </span>
       </div>
       <div class="footer-divider"></div>
-      <ThemeToggle />
+      <div class="footer-actions">
+        <ThemeToggle />
+        <span class="action-divider"></span>
+        <button
+          class="settings-btn"
+          @click="store.openSettings()"
+          aria-label="API 设置"
+          title="API 设置"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1.06 1.06M11.54 11.54l1.06 1.06M3.4 12.6l1.06-1.06M11.54 4.46l1.06-1.06" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </aside>
 </template>
@@ -279,5 +293,38 @@ const displayCategories = computed(() => {
   width: 60%;
   height: 1px;
   background: var(--border-light);
+}
+
+.footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+}
+
+.action-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-light);
+}
+
+.settings-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--duration-fast) var(--ease-out);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.settings-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
 }
 </style>
