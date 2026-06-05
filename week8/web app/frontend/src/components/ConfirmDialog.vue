@@ -11,8 +11,9 @@
           </div>
           <p class="dialog-message">{{ message }}</p>
           <div class="dialog-actions">
-            <button class="btn-cancel" @click="$emit('cancel')">取消</button>
-            <button class="btn-confirm" @click="$emit('confirm')">确定删除</button>
+            <button v-if="showDiscard" class="btn-discard" @click="$emit('discard')">{{ discardText }}</button>
+            <button class="btn-cancel" @click="$emit('cancel')">{{ cancelText }}</button>
+            <button class="btn-confirm" @click="$emit('confirm')">{{ confirmText }}</button>
           </div>
         </div>
       </div>
@@ -24,9 +25,13 @@
 defineProps({
   visible: { type: Boolean, default: false },
   message: { type: String, default: '确定执行此操作？' },
+  confirmText: { type: String, default: '确定删除' },
+  cancelText: { type: String, default: '取消' },
+  showDiscard: { type: Boolean, default: false },
+  discardText: { type: String, default: '不保存' },
 })
 
-defineEmits(['confirm', 'cancel'])
+defineEmits(['confirm', 'cancel', 'discard'])
 </script>
 
 <style scoped>
@@ -84,6 +89,23 @@ defineEmits(['confirm', 'cancel'])
 }
 
 .btn-cancel:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.btn-discard {
+  padding: 9px var(--space-xl);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.btn-discard:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
