@@ -60,6 +60,7 @@ export const useNotesStore = defineStore('notes', () => {
       const res = await fetchTodos(params)
       todos.value = res.data.results
       totalCount.value = res.data.count
+      todoCount.value = res.data.count
     } catch (e) {
       error.value = e.response?.data?.detail || e.message || '加载待办失败'
       throw e
@@ -76,6 +77,7 @@ export const useNotesStore = defineStore('notes', () => {
       const res = await fetchNotes(params)
       notes.value = res.data.results
       totalCount.value = res.data.count
+      noteCount.value = res.data.count
     } catch (e) {
       error.value = e.response?.data?.detail || e.message || '加载笔记失败'
       throw e
