@@ -233,6 +233,7 @@ const formErrors = ref({})
 const isCreatingCategory = ref(false)
 const newCategoryName = ref('')
 const newCatInput = ref(null)
+const isDirty = ref(false)
 
 let renderTimer = null
 onUnmounted(() => {
@@ -248,10 +249,21 @@ watch(() => store.selectedItem, (item) => {
       due_date: item.due_date || '',
     }
     formErrors.value = {}
+    isDirty.value = false
     isEditing.value = true
   } else {
     isEditing.value = false
   }
+})
+
+watch([() => editForm.value.title, () => editForm.value.content,
+       () => editForm.value.category, () => editForm.value.due_date],
+  () => { isDirty.value = true },
+  { deep: false }
+)
+
+watch(isDirty, (val) => {
+  store.isDirty = val
 })
 
 watch(isCreatingCategory, (val) => {
@@ -329,10 +341,12 @@ function startEdit() {
     due_date: item.due_date || '',
   }
   formErrors.value = {}
+  isDirty.value = false
   isEditing.value = true
 }
 
 function cancelEdit() {
+  isDirty.value = false
   isEditing.value = false
   formErrors.value = {}
 }
@@ -377,6 +391,7 @@ async function save() {
         await store.saveNoteEdit(store.selectedItem.id, data)
       }
     }
+    isDirty.value = false
     isEditing.value = false
     emit('toast', { message: '保存成功', type: 'success' })
   } catch (e) {
