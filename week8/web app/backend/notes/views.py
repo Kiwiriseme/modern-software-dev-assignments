@@ -1,5 +1,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import models
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -101,7 +103,7 @@ class NoteViewSet(BaseItemViewSet):
 
 
 class AuthViewSet(viewsets.GenericViewSet):
-    """Registration, login, logout, and current-user endpoints."""
+    """Registration, login, logout, current-user, and CSRF token endpoints."""
 
     permission_classes = [AllowAny]
     serializer_class = RegisterSerializer
@@ -110,6 +112,12 @@ class AuthViewSet(viewsets.GenericViewSet):
         if self.action == "login_view":
             return LoginSerializer
         return RegisterSerializer
+
+    @action(detail=False, methods=["get"], permission_classes=[AllowAny])
+    @method_decorator(ensure_csrf_cookie)
+    def csrf(self, request):
+        """Set the CSRF cookie for the SPA."""
+        return Response({"detail": "CSRF cookie set"})
 
     @action(detail=False, methods=["post"])
     def register(self, request):

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import api from '../api/index.js'
 import { register, login, logout, fetchCurrentUser } from '../api/index.js'
 
 export const useAuthStore = defineStore('auth', () => {
@@ -8,6 +9,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function checkAuth() {
     try {
+      // Fetch CSRF cookie first so subsequent POST/PUT/DELETE work
+      await api.get('/auth/csrf')
       const res = await fetchCurrentUser()
       user.value = res.data
       return true
