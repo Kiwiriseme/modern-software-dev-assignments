@@ -42,7 +42,7 @@ import { computed } from 'vue'
 import { useNotesStore } from '../stores/notes.js'
 import TodoItem from './TodoItem.vue'
 
-const emit = defineEmits(['select'])
+const emit = defineEmits(['select', 'toast'])
 const store = useNotesStore()
 
 const skeletonWidths = ['75%', '60%', '85%', '50%', '70%']
