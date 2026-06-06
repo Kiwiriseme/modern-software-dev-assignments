@@ -55,7 +55,21 @@
         </span>
       </div>
       <div class="footer-divider"></div>
+      <div class="footer-user">
+        <span class="user-email">{{ authStore.user?.email || '未登录' }}</span>
+      </div>
+      <div class="footer-divider"></div>
       <div class="footer-actions">
+        <button
+          class="logout-btn"
+          @click="handleLogout"
+          aria-label="登出"
+          title="登出"
+        >
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M6 2H3a1 1 0 00-1 1v10a1 1 0 001 1h3M11 11l3-3-3-3M14 8H6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <ThemeToggle />
         <span class="action-divider"></span>
         <button
@@ -76,18 +90,27 @@
 
 <script setup>
 import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useNotesStore } from '../stores/notes.js'
+import { useAuthStore } from '../stores/auth.js'
 import { PRESET_CATEGORIES } from '../utils/categories.js'
 import ThemeToggle from './ThemeToggle.vue'
 
 const emit = defineEmits(['delete-category'])
 
+const router = useRouter()
+const authStore = useAuthStore()
 const store = useNotesStore()
 
 const displayCategories = computed(() => {
   const custom = store.categories.filter(c => !PRESET_CATEGORIES.includes(c))
   return [...PRESET_CATEGORIES, ...custom].filter(c => !store.deletedCategories.includes(c))
 })
+
+async function handleLogout() {
+  await authStore.logout()
+  router.push('/login')
+}
 </script>
 
 <style scoped>
@@ -295,6 +318,21 @@ const displayCategories = computed(() => {
   background: var(--border-light);
 }
 
+.footer-user {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-xs) 0;
+}
+
+.user-email {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .footer-actions {
   display: flex;
   align-items: center;
@@ -326,5 +364,25 @@ const displayCategories = computed(() => {
 .settings-btn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
+}
+
+.logout-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  transition: all var(--duration-fast) var(--ease-out);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.logout-btn:hover {
+  background: var(--error-bg);
+  color: var(--error);
 }
 </style>
