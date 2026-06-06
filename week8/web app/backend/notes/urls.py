@@ -12,7 +12,8 @@ from notes.views import AISettingsViewSet, AuthViewSet, NoteViewSet, TodoViewSet
 router = DefaultRouter(trailing_slash=False)
 router.register(r"todos", TodoViewSet, basename="todo")
 router.register(r"notes", NoteViewSet, basename="note")
-router.register(r"ai-settings", AISettingsViewSet, basename="ai-settings")
+# ai-settings uses a direct route (no pk) since it's per-user
+ai_settings_route = AISettingsViewSet.as_view({"get": "retrieve", "put": "update"})
 router.register(r"auth", AuthViewSet, basename="auth")
 
 
@@ -51,6 +52,7 @@ class CategoryDeleteView(APIView):
 
 
 urlpatterns = router.urls + [
+    path("ai-settings", ai_settings_route, name="ai-settings-detail"),
     path("categories", CategoryListView.as_view(), name="categories"),
     path("categories/delete", CategoryDeleteView.as_view(), name="category-delete"),
     # Override auth action URLs for clean paths

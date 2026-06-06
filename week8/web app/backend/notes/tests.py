@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from django.test import TestCase
 from rest_framework import status
@@ -10,9 +11,34 @@ from notes.models import AISettings, Note, Todo
 from notes.serializers import NoteSerializer, TodoSerializer
 
 
+class AuthenticatedAPITestCase(APITestCase):
+    """Base class that creates a test user and logs it in."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="test@example.com",
+            email="test@example.com",
+            password="testpass123",
+        )
+        # Ensure AISettings exists for this user
+        AISettings.objects.create(user=cls.user)
+
+    def setUp(self):
+        self.client.force_login(self.user)
+
+
 class TodoModelTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="modeltest@example.com",
+            email="modeltest@example.com",
+            password="testpass123",
+        )
+
     def test_create_todo_with_minimal_fields(self):
-        todo = Todo.objects.create(title="Buy groceries")
+        todo = Todo.objects.create(user=self.user, title="Buy groceries")
         self.assertEqual(todo.title, "Buy groceries")
         self.assertEqual(todo.content, "")
         self.assertEqual(todo.category, "")
@@ -22,6 +48,7 @@ class TodoModelTest(TestCase):
 
     def test_create_todo_with_all_fields(self):
         todo = Todo.objects.create(
+            user=self.user,
             title="Finish report",
             content="Need to include charts",
             category="工作",
@@ -32,14 +59,14 @@ class TodoModelTest(TestCase):
         self.assertTrue(todo.is_completed)
 
     def test_todo_ordering(self):
-        t1 = Todo.objects.create(title="First", category="工作")
-        t2 = Todo.objects.create(title="Second", category="工作")
+        t1 = Todo.objects.create(user=self.user, title="First", category="工作")
+        t2 = Todo.objects.create(user=self.user, title="Second", category="工作")
         todos = list(Todo.objects.order_by("created_at"))
         self.assertEqual(todos[0].title, t1.title)
         self.assertEqual(todos[1].title, t2.title)
 
     def test_title_max_length(self):
-        todo = Todo.objects.create(title="a" * 200)
+        todo = Todo.objects.create(user=self.user, title="a" * 200)
         self.assertEqual(len(todo.title), 200)
         too_long = Todo(title="a" * 201)
         with self.assertRaises(ValidationError):
@@ -48,20 +75,29 @@ class TodoModelTest(TestCase):
     def test_due_date_defaults_to_today(self):
         from datetime import date
 
-        todo = Todo.objects.create(title="Task with default due date")
+        todo = Todo.objects.create(user=self.user, title="Task with default due date")
         self.assertEqual(todo.due_date, date.today())
 
     def test_due_date_can_be_set_explicitly(self):
         from datetime import date
 
         d = date(2026, 12, 25)
-        todo = Todo.objects.create(title="Christmas task", due_date=d)
+        todo = Todo.objects.create(user=self.user, title="Christmas task", due_date=d)
         self.assertEqual(todo.due_date, d)
 
 
 class NoteModelTest(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="notemodeltest@example.com",
+            email="notemodeltest@example.com",
+            password="testpass123",
+        )
+
     def test_create_note(self):
         note = Note.objects.create(
+            user=self.user,
             title="Meeting Notes",
             content="## Agenda\n- Item 1\n- Item 2",
             category="工作",
@@ -71,7 +107,7 @@ class NoteModelTest(TestCase):
         self.assertFalse(note.content == "")
 
     def test_note_defaults(self):
-        note = Note.objects.create(title="Quick Note")
+        note = Note.objects.create(user=self.user, title="Quick Note")
         self.assertEqual(note.content, "")
         self.assertEqual(note.category, "")
 
@@ -131,9 +167,10 @@ class NoteSerializerTest(TestCase):
         self.assertIn("title", serializer.errors)
 
 
-class TodoAPITest(APITestCase):
+class TodoAPITest(AuthenticatedAPITestCase):
     def setUp(self):
-        self.todo = Todo.objects.create(title="Test Todo", category="工作")
+        super().setUp()
+        self.todo = Todo.objects.create(user=self.user, title="Test Todo", category="工作")
 
     def test_list_todos(self):
         response = self.client.get("/api/v1/todos")
@@ -189,13 +226,13 @@ class TodoAPITest(APITestCase):
         self.assertEqual(Todo.objects.count(), 0)
 
     def test_filter_by_category(self):
-        Todo.objects.create(title="Study", category="学习")
+        Todo.objects.create(user=self.user, title="Study", category="学习")
         response = self.client.get("/api/v1/todos?category=学习")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
 
     def test_search_todos(self):
-        Todo.objects.create(title="Buy milk", content="Grocery shopping")
+        Todo.objects.create(user=self.user, title="Buy milk", content="Grocery shopping")
         response = self.client.get("/api/v1/todos?q=milk")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
@@ -213,7 +250,7 @@ class TodoAPITest(APITestCase):
 
     def test_pagination(self):
         for i in range(25):
-            Todo.objects.create(title=f"Todo {i}", category="工作")
+            Todo.objects.create(user=self.user, title=f"Todo {i}", category="工作")
         response = self.client.get("/api/v1/todos")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["results"]), 20)
@@ -248,9 +285,12 @@ class TodoAPITest(APITestCase):
         self.assertEqual(response.data["due_date"], str(date.today()))
 
 
-class NoteAPITest(APITestCase):
+class NoteAPITest(AuthenticatedAPITestCase):
     def setUp(self):
-        self.note = Note.objects.create(title="Meeting Notes", content="## Agenda", category="工作")
+        super().setUp()
+        self.note = Note.objects.create(
+            user=self.user, title="Meeting Notes", content="## Agenda", category="工作"
+        )
 
     def test_list_notes(self):
         response = self.client.get("/api/v1/notes")
@@ -294,35 +334,36 @@ class NoteAPITest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
 
-class CategoryAPITest(APITestCase):
+class CategoryAPITest(AuthenticatedAPITestCase):
     def test_get_categories(self):
-        Todo.objects.create(title="T1", category="工作")
-        Todo.objects.create(title="T2", category="学习")
-        Note.objects.create(title="N1", category="生活")
+        Todo.objects.create(user=self.user, title="T1", category="工作")
+        Todo.objects.create(user=self.user, title="T2", category="学习")
+        Note.objects.create(user=self.user, title="N1", category="生活")
         response = self.client.get("/api/v1/categories")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(set(response.data), {"工作", "学习", "生活"})
 
     def test_categories_deduplicated(self):
-        Todo.objects.create(title="T1", category="工作")
-        Note.objects.create(title="N1", category="工作")
+        Todo.objects.create(user=self.user, title="T1", category="工作")
+        Note.objects.create(user=self.user, title="N1", category="工作")
         response = self.client.get("/api/v1/categories")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, ["工作"])
 
     def test_empty_category_excluded(self):
-        Todo.objects.create(title="T1", category="")
+        Todo.objects.create(user=self.user, title="T1", category="")
         response = self.client.get("/api/v1/categories")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, [])
 
 
-class CategoryDeleteAPITest(APITestCase):
+class CategoryDeleteAPITest(AuthenticatedAPITestCase):
     def setUp(self):
-        Todo.objects.create(title="Work Todo", category="工作")
-        Todo.objects.create(title="Another Work Todo", category="工作")
-        Note.objects.create(title="Work Note", category="工作")
-        Todo.objects.create(title="Study Todo", category="学习")
+        super().setUp()
+        Todo.objects.create(user=self.user, title="Work Todo", category="工作")
+        Todo.objects.create(user=self.user, title="Another Work Todo", category="工作")
+        Note.objects.create(user=self.user, title="Work Note", category="工作")
+        Todo.objects.create(user=self.user, title="Study Todo", category="学习")
 
     def test_delete_category_clears_items(self):
         response = self.client.delete("/api/v1/categories/delete?name=工作")
@@ -351,22 +392,25 @@ class CategoryDeleteAPITest(APITestCase):
 
 
 class AISettingsModelTest(TestCase):
-    def test_get_solo_creates_default(self):
-        self.assertEqual(AISettings.objects.count(), 0)
-        s = AISettings.get_solo()
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = User.objects.create_user(
+            username="aitest@example.com",
+            email="aitest@example.com",
+            password="testpass123",
+        )
+
+    def test_default_settings_created_with_user(self):
+        AISettings.objects.create(user=self.user)
+        s = self.user.ai_settings
         self.assertEqual(s.model, "gpt-4o-mini")
         self.assertEqual(s.base_url, "https://api.openai.com/v1")
         self.assertEqual(s.api_key, "")
         self.assertFalse(s.is_configured())
 
-    def test_get_solo_returns_existing(self):
-        s1 = AISettings.get_solo()
-        s2 = AISettings.get_solo()
-        self.assertEqual(s1.pk, s2.pk)
-        self.assertEqual(AISettings.objects.count(), 1)
-
     def test_is_configured_with_key(self):
-        s = AISettings.get_solo()
+        AISettings.objects.create(user=self.user)
+        s = self.user.ai_settings
         s.api_key = encrypt_api_key("sk-test-key")
         s.save()
         self.assertTrue(s.is_configured())
@@ -388,9 +432,9 @@ class AISettingsEncryptionTest(TestCase):
         self.assertEqual(decrypt_api_key(""), "")
 
 
-class AISettingsAPITest(APITestCase):
+class AISettingsAPITest(AuthenticatedAPITestCase):
     def test_get_unconfigured_settings(self):
-        response = self.client.get("/api/v1/ai-settings/1")
+        response = self.client.get("/api/v1/ai-settings")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["is_configured"])
         self.assertEqual(response.data["api_key"], "")
@@ -398,7 +442,7 @@ class AISettingsAPITest(APITestCase):
 
     def test_put_settings_masks_key_in_response(self):
         response = self.client.put(
-            "/api/v1/ai-settings/1",
+            "/api/v1/ai-settings",
             {
                 "api_key": "sk-my-secret-key",
                 "base_url": "https://api.openai.com/v1",
@@ -411,7 +455,7 @@ class AISettingsAPITest(APITestCase):
 
     def test_put_settings_encrypts_key_at_rest(self):
         self.client.put(
-            "/api/v1/ai-settings/1",
+            "/api/v1/ai-settings",
             {
                 "api_key": "sk-my-secret-key",
                 "base_url": "https://api.openai.com/v1",
@@ -419,7 +463,8 @@ class AISettingsAPITest(APITestCase):
             },
             format="json",
         )
-        s = AISettings.get_solo()
+        s = self.user.ai_settings
+        s.refresh_from_db()
         # The stored value should be encrypted, not the plaintext
         self.assertNotEqual(s.api_key, "sk-my-secret-key")
         self.assertTrue(len(s.api_key) > 0)
@@ -429,7 +474,7 @@ class AISettingsAPITest(APITestCase):
     def test_put_star_preserves_existing_key(self):
         # First set a key
         self.client.put(
-            "/api/v1/ai-settings/1",
+            "/api/v1/ai-settings",
             {
                 "api_key": "sk-original-key",
                 "base_url": "https://api.openai.com/v1",
@@ -439,48 +484,49 @@ class AISettingsAPITest(APITestCase):
         )
         # Then update with *** to preserve
         self.client.put(
-            "/api/v1/ai-settings/1",
+            "/api/v1/ai-settings",
             {"api_key": "***", "base_url": "https://api.deepseek.com/v1", "model": "deepseek-chat"},
             format="json",
         )
-        s = AISettings.get_solo()
+        s = self.user.ai_settings
+        s.refresh_from_db()
         self.assertEqual(decrypt_api_key(s.api_key), "sk-original-key")
         self.assertEqual(s.model, "deepseek-chat")
         self.assertEqual(s.base_url, "https://api.deepseek.com/v1")
 
 
-class AISummarizeAPITest(APITestCase):
+class AISummarizeAPITest(AuthenticatedAPITestCase):
     def setUp(self):
+        super().setUp()
         self.note = Note.objects.create(
+            user=self.user,
             title="Meeting Notes",
             content="需要完成项目报告\n需要回复客户邮件\n预约下周的会议室",
             category="工作",
         )
 
     def test_summarize_without_settings(self):
+        # Delete the default AISettings
+        self.user.ai_settings.delete()
         response = self.client.post(f"/api/v1/notes/{self.note.id}/summarize-todos")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("请先配置", response.data["detail"])
 
     def test_summarize_empty_content(self):
-        AISettings.get_solo()  # ensure exists
-        note = Note.objects.create(title="Empty", content="", category="工作")
-        # Configure AI settings
-        s = AISettings.get_solo()
+        s = self.user.ai_settings
         s.api_key = encrypt_api_key("sk-test")
         s.save()
+        note = Note.objects.create(user=self.user, title="Empty", content="", category="工作")
         response = self.client.post(f"/api/v1/notes/{note.id}/summarize-todos")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("为空", response.data["detail"])
 
     @patch("notes.ai_service.requests.post")
     def test_summarize_success(self, mock_post):
-        # Configure AI settings
-        s = AISettings.get_solo()
+        s = self.user.ai_settings
         s.api_key = encrypt_api_key("sk-test")
         s.save()
 
-        # Mock AI response
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
@@ -499,8 +545,7 @@ class AISummarizeAPITest(APITestCase):
         self.assertEqual(response.data["count"], 3)
         self.assertEqual(len(response.data["todos"]), 3)
 
-        # Verify todos were created with correct category
-        todos = Todo.objects.filter(category="工作")
+        todos = Todo.objects.filter(user=self.user, category="工作")
         self.assertEqual(todos.count(), 3)
         titles = [t.title for t in todos]
         self.assertIn("完成项目报告", titles)
@@ -509,7 +554,7 @@ class AISummarizeAPITest(APITestCase):
 
     @patch("notes.ai_service.requests.post")
     def test_summarize_no_todos_found(self, mock_post):
-        s = AISettings.get_solo()
+        s = self.user.ai_settings
         s.api_key = encrypt_api_key("sk-test")
         s.save()
 
@@ -525,7 +570,7 @@ class AISummarizeAPITest(APITestCase):
 
     @patch("notes.ai_service.requests.post")
     def test_summarize_ai_returns_401(self, mock_post):
-        s = AISettings.get_solo()
+        s = self.user.ai_settings
         s.api_key = encrypt_api_key("sk-test")
         s.save()
 
@@ -541,7 +586,7 @@ class AISummarizeAPITest(APITestCase):
 
     @patch("notes.ai_service.requests.post")
     def test_summarize_ai_timeout(self, mock_post):
-        s = AISettings.get_solo()
+        s = self.user.ai_settings
         s.api_key = encrypt_api_key("sk-test")
         s.save()
 
@@ -554,7 +599,7 @@ class AISummarizeAPITest(APITestCase):
 
     @patch("notes.ai_service.requests.post")
     def test_summarize_malformed_response(self, mock_post):
-        s = AISettings.get_solo()
+        s = self.user.ai_settings
         s.api_key = encrypt_api_key("sk-test")
         s.save()
 
@@ -571,7 +616,7 @@ class AISummarizeAPITest(APITestCase):
 
     @patch("notes.ai_service.requests.post")
     def test_summarize_with_code_fence_json(self, mock_post):
-        s = AISettings.get_solo()
+        s = self.user.ai_settings
         s.api_key = encrypt_api_key("sk-test")
         s.save()
 
@@ -587,3 +632,188 @@ class AISummarizeAPITest(APITestCase):
         response = self.client.post(f"/api/v1/notes/{self.note.id}/summarize-todos")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 2)
+
+
+class AuthAPITest(APITestCase):
+    """Test register, login, logout, and me endpoints."""
+
+    def test_register_success(self):
+        response = self.client.post(
+            "/api/v1/auth/register",
+            {"email": "new@example.com", "password": "pass123", "password2": "pass123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data["email"], "new@example.com")
+        user = User.objects.get(email="new@example.com")
+        self.assertIsNotNone(user)
+        self.assertTrue(hasattr(user, "ai_settings"))
+
+    def test_register_duplicate_email(self):
+        User.objects.create_user(
+            username="existing@example.com",
+            email="existing@example.com",
+            password="pass123",
+        )
+        response = self.client.post(
+            "/api/v1/auth/register",
+            {"email": "existing@example.com", "password": "pass123", "password2": "pass123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("该邮箱已被注册", str(response.data["email"]))
+
+    def test_register_short_password(self):
+        response = self.client.post(
+            "/api/v1/auth/register",
+            {"email": "new@example.com", "password": "12345", "password2": "12345"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("password", response.data)
+
+    def test_register_password_mismatch(self):
+        response = self.client.post(
+            "/api/v1/auth/register",
+            {"email": "new@example.com", "password": "pass123", "password2": "different"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("两次密码不一致", str(response.data["password2"]))
+
+    def test_register_invalid_email(self):
+        response = self.client.post(
+            "/api/v1/auth/register",
+            {"email": "not-an-email", "password": "pass123", "password2": "pass123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("email", response.data)
+
+    def test_login_success(self):
+        User.objects.create_user(
+            username="test@example.com",
+            email="test@example.com",
+            password="pass123",
+        )
+        response = self.client.post(
+            "/api/v1/auth/login",
+            {"email": "test@example.com", "password": "pass123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["email"], "test@example.com")
+
+    def test_login_wrong_password(self):
+        User.objects.create_user(
+            username="test@example.com",
+            email="test@example.com",
+            password="pass123",
+        )
+        response = self.client.post(
+            "/api/v1/auth/login",
+            {"email": "test@example.com", "password": "wrongpass"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("邮箱或密码错误", response.data["detail"])
+
+    def test_login_nonexistent_email(self):
+        response = self.client.post(
+            "/api/v1/auth/login",
+            {"email": "nobody@example.com", "password": "pass123"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertIn("邮箱或密码错误", response.data["detail"])
+
+    def test_logout(self):
+        user = User.objects.create_user(
+            username="test@example.com",
+            email="test@example.com",
+            password="pass123",
+        )
+        self.client.force_login(user)
+        response = self.client.post("/api/v1/auth/logout")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["detail"], "已登出")
+
+    def test_me_authenticated(self):
+        user = User.objects.create_user(
+            username="test@example.com",
+            email="test@example.com",
+            password="pass123",
+        )
+        self.client.force_login(user)
+        response = self.client.get("/api/v1/auth/me")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["email"], "test@example.com")
+
+    def test_me_unauthenticated(self):
+        response = self.client.get("/api/v1/auth/me")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_crud_requires_auth(self):
+        response = self.client.get("/api/v1/todos")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        response = self.client.get("/api/v1/notes")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        response = self.client.get("/api/v1/categories")
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+
+class UserIsolationTest(APITestCase):
+    """Test that users cannot see each other's data."""
+
+    def setUp(self):
+        self.user_a = User.objects.create_user(
+            username="a@example.com", email="a@example.com", password="pass123"
+        )
+        self.user_b = User.objects.create_user(
+            username="b@example.com", email="b@example.com", password="pass123"
+        )
+        self.note_a = Note.objects.create(
+            user=self.user_a, title="A's Note", content="Secret", category="工作"
+        )
+        self.todo_a = Todo.objects.create(user=self.user_a, title="A's Todo", category="工作")
+        self.note_b = Note.objects.create(user=self.user_b, title="B's Note", category="工作")
+        self.todo_b = Todo.objects.create(user=self.user_b, title="B's Todo", category="工作")
+
+    def test_user_a_cannot_see_user_b_notes(self):
+        self.client.force_login(self.user_a)
+        response = self.client.get("/api/v1/notes")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["title"], "A's Note")
+
+    def test_user_a_cannot_see_user_b_todos(self):
+        self.client.force_login(self.user_a)
+        response = self.client.get("/api/v1/todos")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["title"], "A's Todo")
+
+    def test_user_a_cannot_access_user_b_note_directly(self):
+        self.client.force_login(self.user_a)
+        response = self.client.get(f"/api/v1/notes/{self.note_b.id}")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_user_a_cannot_access_user_b_todo_directly(self):
+        self.client.force_login(self.user_a)
+        response = self.client.get(f"/api/v1/todos/{self.todo_b.id}")
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_user_a_categories_excludes_user_b(self):
+        self.client.force_login(self.user_a)
+        response = self.client.get("/api/v1/categories")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(set(response.data), {"工作"})
+
+    def test_ai_settings_isolated_per_user(self):
+        AISettings.objects.create(user=self.user_a)
+        AISettings.objects.create(user=self.user_b)
+        self.client.force_login(self.user_a)
+        response = self.client.get("/api/v1/ai-settings")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        s_a = self.user_a.ai_settings
+        self.assertEqual(response.data["model"], s_a.model)

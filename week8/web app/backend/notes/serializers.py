@@ -32,14 +32,14 @@ class TodoSerializer(BaseItemSerializer):
     class Meta:
         model = Todo
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "user", "created_at", "updated_at"]
 
 
 class NoteSerializer(BaseItemSerializer):
     class Meta:
         model = Note
         fields = "__all__"
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "user", "created_at", "updated_at"]
 
 
 class AISettingsSerializer(serializers.ModelSerializer):
