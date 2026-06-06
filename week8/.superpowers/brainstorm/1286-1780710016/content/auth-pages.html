@@ -1,0 +1,83 @@
+<h2>登录 / 注册页面设计</h2>
+<p class="subtitle">两个方案 — 简约居中 vs 分栏</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>居中卡片式（推荐）</h3>
+      <p>与现有 UI 的极简风格保持一致。全屏居中卡片，应用名 + 表单 + 切换链接</p>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>分栏式</h3>
+      <p>左侧品牌区域 + 右侧表单，视觉更丰富但开发量稍大</p>
+    </div>
+  </div>
+</div>
+
+<h3 style="margin-top:32px;">方案 A — 居中卡片</h3>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">登录页面</div>
+    <div class="mockup-body" style="display:flex;align-items:center;justify-content:center;min-height:360px;background:#f8f9fa;">
+      <div style="width:360px;background:white;border-radius:12px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <div style="text-align:center;font-size:24px;font-weight:700;margin-bottom:8px;">📋 便签管理</div>
+        <div style="text-align:center;color:#94a3b8;font-size:14px;margin-bottom:24px;">登录你的账户</div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px;">邮箱</div>
+          <input class="mock-input" placeholder="your@email.com" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:20px;">
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px;">密码</div>
+          <input class="mock-input" type="password" placeholder="••••••••" style="width:100%;box-sizing:border-box;">
+        </div>
+        <button class="mock-button" style="width:100%;margin-bottom:16px;">登录</button>
+        <div style="text-align:center;font-size:13px;color:#94a3b8;">
+          还没有账户？<a href="#" style="color:#3b82f6;">立即注册</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">注册页面</div>
+    <div class="mockup-body" style="display:flex;align-items:center;justify-content:center;min-height:360px;background:#f8f9fa;">
+      <div style="width:360px;background:white;border-radius:12px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <div style="text-align:center;font-size:24px;font-weight:700;margin-bottom:8px;">📋 便签管理</div>
+        <div style="text-align:center;color:#94a3b8;font-size:14px;margin-bottom:24px;">创建新账户</div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px;">邮箱</div>
+          <input class="mock-input" placeholder="your@email.com" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px;">密码</div>
+          <input class="mock-input" type="password" placeholder="至少6位" style="width:100%;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:20px;">
+          <div style="font-size:12px;color:#64748b;margin-bottom:4px;">确认密码</div>
+          <input class="mock-input" type="password" placeholder="再次输入密码" style="width:100%;box-sizing:border-box;">
+        </div>
+        <button class="mock-button" style="width:100%;margin-bottom:16px;">注册</button>
+        <div style="text-align:center;font-size:13px;color:#94a3b8;">
+          已有账户？<a href="#" style="color:#3b82f6;">去登录</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h4 style="margin-top:20px;">路由守卫流程</h4>
+<div style="background:#f0f4f8;border-radius:8px;padding:16px;font-family:monospace;font-size:13px;line-height:1.8;">
+  用户访问 / → router.beforeEach 检查 session<br>
+  ├─ 已登录 → 放行，渲染 MainLayout<br>
+  └─ 未登录 → 跳转 /login<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├─ /login → 登录表单，成功后跳回 /<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;└─ /register → 注册表单，成功后自动登录跳回 /
+</div>
+
+<div style="margin-top:16px;background:#fef3c7;border-radius:8px;padding:12px;font-size:13px;color:#92400e;">
+  💡 侧边栏底部新增「登出」按钮，点击后清除 session，跳回登录页
+</div>

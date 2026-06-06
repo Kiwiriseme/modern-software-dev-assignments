@@ -1,0 +1,48 @@
+<h2>Current App Architecture — 便签管理应用</h2>
+<p class="subtitle">Django (DRF) + Vue.js (Vite) — 当前无登录/认证功能</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">Backend (Django + DRF)</div>
+    <div class="mockup-body">
+      <p><strong>Models:</strong></p>
+      <ul>
+        <li>📝 <strong>Note</strong> — title, content, category, timestamps</li>
+        <li>✅ <strong>Todo</strong> — title, content, category, due_date, is_completed, timestamps</li>
+        <li>🤖 <strong>AISettings</strong> — API key, base_url, model (singleton)</li>
+      </ul>
+      <p><strong>API Endpoints:</strong></p>
+      <ul>
+        <li><code>GET/POST /api/v1/notes</code></li>
+        <li><code>GET/PUT/DELETE /api/v1/notes/:id</code></li>
+        <li><code>POST /api/v1/notes/:id/summarize-todos</code></li>
+        <li><code>GET/POST/PUT/PATCH/DELETE /api/v1/todos</code></li>
+        <li><code>GET/PUT /api/v1/ai-settings/1</code></li>
+        <li><code>GET /api/v1/categories</code></li>
+      </ul>
+      <p>🔑 <strong>Authentication: NONE</strong> (open access)</p>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">Frontend (Vue 3 + Pinia + Vite)</div>
+    <div class="mockup-body">
+      <p><strong>Structure:</strong></p>
+      <ul>
+        <li><code>MainLayout.vue</code> — single route</li>
+        <li><code>Sidebar.vue</code> — category navigation</li>
+        <li><code>ContentArea.vue</code> — card/list views</li>
+        <li><code>DetailPanel.vue</code> — edit item</li>
+        <li><code>SettingsDialog.vue</code> — AI config</li>
+      </ul>
+      <p>🔑 <strong>Login page: NONE</strong></p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Data Flow</h3>
+  <div style="background:#f0f4f8;border-radius:12px;padding:20px;text-align:center;font-family:monospace;font-size:14px;">
+    Browser → Axios (<code>/api/v1/*</code>) → Django DRF ViewSet → SQLite<br>
+    <span style="color:#e74c3c;">⚠ No auth middleware, no user isolation — all data is shared</span>
+  </div>
+</div>
