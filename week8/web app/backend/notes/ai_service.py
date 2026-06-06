@@ -135,7 +135,7 @@ def summarize_note_todos(note):
     Main entry point: call AI API for a note, create Todo items from the result.
     Returns (todos, count) tuple.
     """
-    ai_settings = AISettings.get_solo()
+    ai_settings, _ = AISettings.objects.get_or_create(user=note.user)
 
     if not ai_settings.is_configured():
         raise AINotConfiguredError("AI API settings are not configured")
@@ -152,6 +152,7 @@ def summarize_note_todos(note):
         created_todos = []
         for title in titles:
             todo = Todo.objects.create(
+                user=note.user,
                 title=title,
                 content="",
                 category=note.category,
