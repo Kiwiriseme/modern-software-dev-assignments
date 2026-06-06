@@ -76,9 +76,4 @@ urlpatterns = router.urls + [
         AuthViewSet.as_view({"get": "me"}),
         name="auth-me",
     ),
-    path(
-        "auth/csrf",
-        AuthViewSet.as_view({"get": "csrf"}),
-        name="auth-csrf",
-    ),
 ]

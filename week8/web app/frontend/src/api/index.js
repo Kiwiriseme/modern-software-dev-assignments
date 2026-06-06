@@ -8,6 +8,23 @@ const api = axios.create({
   withCredentials: true,
 })
 
+// Redirect to login on 403 (session expired mid-use)
+api.interceptors.response.use(
+  response => response,
+  async (error) => {
+    if (error.response?.status === 403) {
+      // Only redirect if not already on a guest page
+      const path = window.location.pathname
+      if (path !== '/login' && path !== '/register') {
+        const { useAuthStore } = await import('../stores/auth.js')
+        useAuthStore().user = null
+        window.location.href = '/login'
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
 export function fetchCategories() {
   return api.get('/categories')
 }
