@@ -60,12 +60,29 @@ export function deleteCategory(name) {
   return api.delete('/categories/delete', { params: { name } })
 }
 
+// Auth
+export function register(data) {
+  return api.post('/auth/register', data)
+}
+
+export function login(data) {
+  return api.post('/auth/login', data)
+}
+
+export function logout() {
+  return api.post('/auth/logout')
+}
+
+export function fetchCurrentUser() {
+  return api.get('/auth/me')
+}
+
 export function fetchAISettings() {
-  return api.get('/ai-settings/1')
+  return api.get('/ai-settings')
 }
 
 export function saveAISettings(data) {
-  return api.put('/ai-settings/1', data)
+  return api.put('/ai-settings', data)
 }
 
 export function summarizeNoteTodos(noteId) {
