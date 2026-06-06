@@ -1,5 +1,6 @@
 from datetime import date
 
+from django.contrib.auth.models import User
 from django.db import models
 
 
@@ -11,6 +12,7 @@ class Todo(models.Model):
         ("想法", "想法"),
     ]
 
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="todos")
     title = models.CharField(max_length=200)
     content = models.TextField(blank=True, default="")
     category = models.CharField(max_length=50, blank=True, default="")
@@ -27,6 +29,7 @@ class Todo(models.Model):
 
 
 class Note(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notes")
     title = models.CharField(max_length=200)
     content = models.TextField(blank=True, default="")
     category = models.CharField(max_length=50, blank=True, default="")
@@ -41,8 +44,9 @@ class Note(models.Model):
 
 
 class AISettings(models.Model):
-    """Singleton model storing AI API configuration. Only one row should exist."""
+    """Per-user AI API configuration. One row per user."""
 
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="ai_settings")
     api_key = models.CharField(max_length=512, blank=True, default="")
     base_url = models.URLField(default="https://api.openai.com/v1")
     model = models.CharField(max_length=100, default="gpt-4o-mini")
@@ -53,13 +57,7 @@ class AISettings(models.Model):
         verbose_name_plural = "AI Settings"
 
     def __str__(self):
-        return f"AISettings (model={self.model})"
+        return f"AISettings(user={self.user.email}, model={self.model})"
 
     def is_configured(self):
         return bool(self.api_key)
-
-    @classmethod
-    def get_solo(cls):
-        """Return the singleton AISettings instance, creating one if it doesn't exist."""
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj

@@ -1,3 +1,4 @@
+from django.contrib.auth.models import User
 from rest_framework import serializers
 
 from notes.ai_service import encrypt_api_key
@@ -70,8 +71,34 @@ class AISettingsSerializer(serializers.ModelSerializer):
             validated_data["api_key"] = encrypt_api_key(api_key)
         return super().update(instance, validated_data)
 
+
+class RegisterSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(min_length=6, write_only=True)
+    password2 = serializers.CharField(min_length=6, write_only=True)
+
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError("该邮箱已被注册")
+        return value
+
+    def validate(self, data):
+        if data["password"] != data["password2"]:
+            raise serializers.ValidationError({"password2": "两次密码不一致"})
+        return data
+
     def create(self, validated_data):
-        api_key = validated_data.get("api_key", "")
-        if api_key and api_key != "***":
-            validated_data["api_key"] = encrypt_api_key(api_key)
-        return super().create(validated_data)
+        email = validated_data["email"]
+        password = validated_data.pop("password")
+        validated_data.pop("password2")
+        user = User.objects.create_user(
+            username=email,
+            email=email,
+            password=password,
+        )
+        return user
+
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
